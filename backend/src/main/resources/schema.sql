@@ -143,3 +143,50 @@ CREATE TABLE IF NOT EXISTS service_log (
     pet_status VARCHAR(200),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS review (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    reviewer_id BIGINT NOT NULL,
+    reviewer_type VARCHAR(20) NOT NULL,
+    target_id BIGINT NOT NULL,
+    rating DECIMAL(3, 2) NOT NULL,
+    content TEXT,
+    photo_urls TEXT,
+    tags VARCHAR(500),
+    is_anonymous TINYINT NOT NULL DEFAULT 0,
+    reply_content TEXT,
+    reply_at TIMESTAMP,
+    status TINYINT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payment (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    owner_id BIGINT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    payment_method VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    transaction_no VARCHAR(64),
+    out_trade_no VARCHAR(64),
+    authorized_at TIMESTAMP,
+    captured_at TIMESTAMP,
+    refund_amount DECIMAL(10, 2),
+    refund_reason VARCHAR(500),
+    refund_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sitter_withdrawal (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    sitter_id BIGINT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    bank_info VARCHAR(500),
+    transaction_no VARCHAR(64),
+    remark VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
+);

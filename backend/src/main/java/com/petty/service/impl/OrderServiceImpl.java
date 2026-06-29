@@ -7,6 +7,7 @@ import com.petty.entity.*;
 import com.petty.enums.OrderStatus;
 import com.petty.mapper.*;
 import com.petty.service.OrderService;
+import com.petty.service.PaymentService;
 import com.petty.service.matching.MatchingEngine;
 import com.petty.vo.*;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class OrderServiceImpl implements OrderService {
     private final ServiceTypeMapper serviceTypeMapper;
     private final ServiceLogMapper serviceLogMapper;
     private final MatchingEngine matchingEngine;
+    private final PaymentService paymentService;
 
     private static final BigDecimal GPS_CHECK_IN_THRESHOLD_KM = new BigDecimal("0.2");
     private static final BigDecimal GPS_CHECK_OUT_THRESHOLD_KM = new BigDecimal("0.5");
@@ -242,6 +244,9 @@ public class OrderServiceImpl implements OrderService {
         order.setSitterIncome(order.getTotalAmount().subtract(commission));
 
         orderMapper.updateById(order);
+        
+        paymentService.capturePayment(orderId);
+        
         log.info("主人 {} 确认服务: {}", ownerId, order.getOrderNo());
     }
 
