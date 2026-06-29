@@ -1,0 +1,40 @@
+# Petty 项目忽略规则
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Build output
+dist/
+build/
+target/
+*.js.map
+
+# Dependencies
+node_modules/
+.pnp.*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# 编译产物
+*.class
+*.jar
+
+# 测试输出
+test-data/
+coverage/
+
+# Docker volumes (local)
+docker-data/
