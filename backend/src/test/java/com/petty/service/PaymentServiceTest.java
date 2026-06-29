@@ -122,7 +122,6 @@ class PaymentServiceTest {
             authorized.setOrderId(1L);
             authorized.setStatus("AUTHORIZED");
             when(paymentMapper.selectOne(any())).thenReturn(authorized);
-            when(orderMapper.selectById(1L)).thenReturn(mockOrder);
 
             paymentService.capturePayment(1L);
 
@@ -151,6 +150,7 @@ class PaymentServiceTest {
             Payment payment = new Payment();
             payment.setId(1L);
             payment.setOrderId(1L);
+            payment.setOwnerId(1L);
             payment.setAmount(new BigDecimal("49.00"));
             payment.setStatus("AUTHORIZED");
             when(paymentMapper.selectOne(any())).thenReturn(payment);
@@ -170,6 +170,7 @@ class PaymentServiceTest {
         @DisplayName("已退款状态不能再退")
         void refund_alreadyRefunded_throws() {
             Payment payment = new Payment();
+            payment.setOwnerId(1L);
             payment.setStatus("REFUNDED");
             when(paymentMapper.selectOne(any())).thenReturn(payment);
 

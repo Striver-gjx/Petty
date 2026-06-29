@@ -40,6 +40,7 @@ class OrderBoundaryTest {
     @Mock private SitterMapper sitterMapper;
     @Mock private ServiceTypeMapper serviceTypeMapper;
     @Mock private ServiceLogMapper serviceLogMapper;
+    @Mock private OrderPetMapper orderPetMapper;
     @Mock private MatchingEngine matchingEngine;
     @Mock private PaymentService paymentService;
 

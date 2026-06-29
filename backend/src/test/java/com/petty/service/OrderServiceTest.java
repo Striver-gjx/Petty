@@ -41,6 +41,7 @@ class OrderServiceTest {
     @Mock private SitterMapper sitterMapper;
     @Mock private ServiceTypeMapper serviceTypeMapper;
     @Mock private ServiceLogMapper serviceLogMapper;
+    @Mock private OrderPetMapper orderPetMapper;
     @Mock private MatchingEngine matchingEngine;
     @Mock private PaymentService paymentService;
 
@@ -136,6 +137,7 @@ class OrderServiceTest {
         void createOrder_multiplePets_extraCharge() {
             Pet pet2 = new Pet();
             pet2.setId(2L);
+            pet2.setOwnerId(1L);
             pet2.setSpecies("CAT");
 
             when(ownerMapper.selectById(1L)).thenReturn(mockOwner);
@@ -185,6 +187,7 @@ class OrderServiceTest {
         void accept_correctSitter_success() {
             mockOrder.setStatus(OrderStatus.PENDING_ACCEPT.name());
             when(orderMapper.selectById(1L)).thenReturn(mockOrder);
+            when(orderMapper.updateById(any(ServiceOrder.class))).thenReturn(1);
 
             orderService.acceptOrder(1L, 1L);
 

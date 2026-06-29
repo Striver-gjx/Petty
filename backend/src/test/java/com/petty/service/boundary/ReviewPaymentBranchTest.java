@@ -166,7 +166,7 @@ class ReviewPaymentBranchTest {
 
             reviewService.createReview(1L, "OWNER", dto);
 
-            verify(sitterMapper, never()).updateById(any());
+            verify(sitterMapper, never()).updateById(any(Sitter.class));
         }
 
         @Test
@@ -396,6 +396,7 @@ class ReviewPaymentBranchTest {
         @DisplayName("requestRefund - 状态为REFUNDED - 不支持退款")
         void refund_alreadyRefunded_throws() {
             Payment payment = new Payment();
+            payment.setOwnerId(1L);
             payment.setStatus("REFUNDED");
             when(paymentMapper.selectOne(any())).thenReturn(payment);
 
@@ -414,6 +415,7 @@ class ReviewPaymentBranchTest {
             Payment payment = new Payment();
             payment.setId(1L);
             payment.setOrderId(1L);
+            payment.setOwnerId(1L);
             payment.setStatus("CAPTURED");
             payment.setAmount(new BigDecimal("49.00"));
             when(paymentMapper.selectOne(any())).thenReturn(payment);
@@ -440,6 +442,7 @@ class ReviewPaymentBranchTest {
             Payment payment = new Payment();
             payment.setId(1L);
             payment.setOrderId(1L);
+            payment.setOwnerId(1L);
             payment.setStatus("AUTHORIZED");
             payment.setAmount(new BigDecimal("49.00"));
             when(paymentMapper.selectOne(any())).thenReturn(payment);
@@ -452,7 +455,7 @@ class ReviewPaymentBranchTest {
             paymentService.requestRefund(1L, dto);
 
             verify(paymentMapper).updateById(any(Payment.class));
-            verify(orderMapper, never()).updateById(any());
+            verify(orderMapper, never()).updateById(any(ServiceOrder.class));
         }
 
         @Test
@@ -462,7 +465,7 @@ class ReviewPaymentBranchTest {
 
             paymentService.capturePayment(99L);
 
-            verify(paymentMapper, never()).updateById(any());
+            verify(paymentMapper, never()).updateById(any(Payment.class));
         }
 
         @Test
@@ -474,24 +477,22 @@ class ReviewPaymentBranchTest {
 
             paymentService.capturePayment(1L);
 
-            verify(paymentMapper, never()).updateById(any());
+            verify(paymentMapper, never()).updateById(any(Payment.class));
         }
 
         @Test
-        @DisplayName("capturePayment - order为null - 不crash")
+        @DisplayName("capturePayment - AUTHORIZED状态 - 正常扣款")
         void capture_orderNull_noCrash() {
             Payment payment = new Payment();
             payment.setId(1L);
             payment.setOrderId(1L);
             payment.setStatus("AUTHORIZED");
             when(paymentMapper.selectOne(any())).thenReturn(payment);
-            when(orderMapper.selectById(1L)).thenReturn(null);
 
             paymentService.capturePayment(1L);
 
             verify(paymentMapper).updateById(argThat((Payment p) ->
                     "CAPTURED".equals(p.getStatus())));
-            verify(orderMapper, never()).updateById(any());
         }
     }
 }

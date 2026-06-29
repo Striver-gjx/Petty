@@ -79,6 +79,7 @@ class ReviewServiceTest {
     void createReview_orderNotCompleted_throws() {
         ServiceOrder pendingOrder = new ServiceOrder();
         pendingOrder.setId(2L);
+        pendingOrder.setOwnerId(1L);
         pendingOrder.setStatus(OrderStatus.IN_SERVICE.name());
         when(orderMapper.selectById(2L)).thenReturn(pendingOrder);
 

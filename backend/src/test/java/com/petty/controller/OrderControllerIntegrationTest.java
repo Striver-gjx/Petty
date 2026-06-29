@@ -1,16 +1,20 @@
 package com.petty.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
 import java.util.Map;
@@ -22,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("OrderController - 完整流程集成测试")
 class OrderControllerIntegrationTest {
 
@@ -30,6 +35,28 @@ class OrderControllerIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    private String ownerToken;
+    private String sitterToken;
+
+    @BeforeAll
+    void login() throws Exception {
+        MvcResult ownerResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("phone", "13800001111", "role", "OWNER"))))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode ownerData = objectMapper.readTree(ownerResult.getResponse().getContentAsString());
+        ownerToken = ownerData.get("data").get("token").asText();
+
+        MvcResult sitterResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("phone", "13900001111", "role", "SITTER"))))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode sitterData = objectMapper.readTree(sitterResult.getResponse().getContentAsString());
+        sitterToken = sitterData.get("data").get("token").asText();
+    }
 
     @Test
     @Order(1)
@@ -57,7 +84,7 @@ class OrderControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/orders")
-                        .param("ownerId", "1")
+                        .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -78,7 +105,7 @@ class OrderControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/payments/pay")
-                        .param("ownerId", "1")
+                        .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -92,7 +119,7 @@ class OrderControllerIntegrationTest {
     @DisplayName("POST /orders/{id}/accept 喂养师接单")
     void acceptOrder() throws Exception {
         mockMvc.perform(post("/api/v1/orders/1/accept")
-                        .param("sitterId", "1"))
+                        .header("Authorization", "Bearer " + sitterToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
     }
@@ -108,7 +135,7 @@ class OrderControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/orders/1/check-in")
-                        .param("sitterId", "1")
+                        .header("Authorization", "Bearer " + sitterToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -129,7 +156,7 @@ class OrderControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/orders/1/logs")
-                        .param("sitterId", "1")
+                        .header("Authorization", "Bearer " + sitterToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -148,7 +175,7 @@ class OrderControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/orders/1/check-out")
-                        .param("sitterId", "1")
+                        .header("Authorization", "Bearer " + sitterToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -160,7 +187,7 @@ class OrderControllerIntegrationTest {
     @DisplayName("POST /orders/{id}/confirm 主人确认")
     void confirmOrder() throws Exception {
         mockMvc.perform(post("/api/v1/orders/1/confirm")
-                        .param("ownerId", "1"))
+                        .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
     }
@@ -169,9 +196,11 @@ class OrderControllerIntegrationTest {
     @Order(9)
     @DisplayName("GET /orders/{id} 查看已确认订单详情")
     void getOrderDetail() throws Exception {
-        mockMvc.perform(get("/api/v1/orders/1"))
+        mockMvc.perform(get("/api/v1/orders/1")
+                        .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("OWNER_CONFIRMED"))
+                .andExpect(jsonPath("$.data.pets", hasSize(1)))
                 .andExpect(jsonPath("$.data.serviceLogs", hasSize(greaterThanOrEqualTo(2))));
     }
 
@@ -188,8 +217,7 @@ class OrderControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/reviews")
-                        .param("reviewerId", "1")
-                        .param("reviewerType", "OWNER")
+                        .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -200,7 +228,8 @@ class OrderControllerIntegrationTest {
     @Order(11)
     @DisplayName("GET /reviews/sitter/{id} 查看喂养师评价")
     void listSitterReviews() throws Exception {
-        mockMvc.perform(get("/api/v1/reviews/sitter/1"))
+        mockMvc.perform(get("/api/v1/reviews/sitter/1")
+                        .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.data[0].rating").value(5.0));
@@ -222,12 +251,13 @@ class OrderControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/orders")
-                        .param("ownerId", "1")
+                        .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createBody)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/v1/orders/2/accept").param("sitterId", "1"))
+        mockMvc.perform(post("/api/v1/orders/2/accept")
+                        .header("Authorization", "Bearer " + sitterToken))
                 .andExpect(status().isOk());
 
         Map<String, Object> farCheckIn = Map.of(
@@ -237,7 +267,7 @@ class OrderControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/orders/2/check-in")
-                        .param("sitterId", "1")
+                        .header("Authorization", "Bearer " + sitterToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(farCheckIn)))
                 .andExpect(status().isOk())

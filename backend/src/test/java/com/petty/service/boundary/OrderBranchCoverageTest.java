@@ -43,6 +43,7 @@ class OrderBranchCoverageTest {
     @Mock private SitterMapper sitterMapper;
     @Mock private ServiceTypeMapper serviceTypeMapper;
     @Mock private ServiceLogMapper serviceLogMapper;
+    @Mock private OrderPetMapper orderPetMapper;
     @Mock private MatchingEngine matchingEngine;
     @Mock private PaymentService paymentService;
 
@@ -218,7 +219,7 @@ class OrderBranchCoverageTest {
             when(matchingEngine.filterByDistance(any(), any(), any())).thenReturn(List.of(matchedSitter));
             when(matchingEngine.filterBySpecies(any(), eq("CAT"))).thenReturn(List.of(matchedSitter));
             when(matchingEngine.rank(any(), any(), any())).thenReturn(
-                    List.of(new MatchingEngine.ScoredSitter(matchedSitter, 90.0)));
+                    List.of(new MatchingEngine.ScoredSitter(matchedSitter, 90.0, 2.5)));
 
             OrderCreateDTO dto = new OrderCreateDTO();
             dto.setServiceTypeId(1L);
