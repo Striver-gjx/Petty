@@ -39,6 +39,7 @@ class WithdrawalServiceTest {
         mockSitter.setId(1L);
         mockSitter.setName("王大勇");
         mockSitter.setStatus("ACTIVE");
+        mockSitter.setWalletBalance(new BigDecimal("500.00"));
     }
 
     @Test

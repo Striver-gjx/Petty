@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ClipboardList, Search } from 'lucide-react';
 import { orderApi } from '../api';
 
 interface Order {
@@ -27,16 +28,37 @@ const statusMap: Record<string, { label: string; color: string }> = {
   DISPUTED: { label: '争议中', color: 'bg-orange-100 text-orange-700' },
 };
 
+const statusTabs = [
+  { value: '', label: '全部' },
+  { value: 'PENDING_MATCH', label: '待匹配' },
+  { value: 'PENDING_ACCEPT', label: '待接单' },
+  { value: 'IN_SERVICE', label: '服务中' },
+  { value: 'SERVICE_COMPLETED', label: '已完成' },
+  { value: 'CANCELLED', label: '已取消' },
+];
+
 export default function OrdersPage() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
-    orderApi.list()
+    orderApi.listAll()
       .then((res) => setOrders((res as { data: Order[] }).data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const filtered = orders.filter((o) => {
+    const q = search.toLowerCase();
+    const matchSearch = !search
+      || o.orderNo.toLowerCase().includes(q)
+      || o.serviceAddress.toLowerCase().includes(q);
+    const matchStatus = !statusFilter || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   if (loading) return <div className="text-gray-400">加载中...</div>;
 
@@ -46,8 +68,37 @@ export default function OrdersPage() {
         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
           <ClipboardList className="w-6 h-6" /> 服务订单
         </h2>
-        <span className="text-sm text-gray-400">{orders.length} 条订单</span>
+        <span className="text-sm text-gray-400">{filtered.length} 条订单</span>
       </div>
+
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="搜索订单号或地址..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500"
+          />
+        </div>
+        <div className="flex gap-1 flex-wrap">
+          {statusTabs.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setStatusFilter(tab.value)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                statusFilter === tab.value
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -61,10 +112,14 @@ export default function OrdersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {orders.map((o) => {
-              const st = statusMap[o.status] || { label: o.status, color: 'bg-gray-100 text-gray-700' };
+            {filtered.map((o) => {
+              const st = statusMap[o.status] ?? { label: o.status, color: 'bg-gray-100 text-gray-700' };
               return (
-                <tr key={o.id} className="hover:bg-gray-50">
+                <tr
+                  key={o.id}
+                  onClick={() => navigate(`/orders/${o.id}`)}
+                  className="hover:bg-orange-50/50 cursor-pointer transition-colors"
+                >
                   <td className="px-6 py-4 font-mono text-gray-800">{o.orderNo}</td>
                   <td className="px-6 py-4 text-gray-600 max-w-xs truncate">{o.serviceAddress}</td>
                   <td className="px-6 py-4 text-gray-600">{o.scheduledDate}</td>
@@ -80,7 +135,7 @@ export default function OrdersPage() {
             })}
           </tbody>
         </table>
-        {orders.length === 0 && (
+        {filtered.length === 0 && (
           <div className="text-center py-12 text-gray-400">暂无订单数据</div>
         )}
       </div>

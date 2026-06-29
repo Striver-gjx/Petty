@@ -2,7 +2,10 @@
 import { onLaunch } from '@dcloudio/uni-app'
 
 onLaunch(() => {
-  console.log('Petty App Launch')
+  const token = uni.getStorageSync('token')
+  if (!token) {
+    uni.reLaunch({ url: '/pages/login/index' })
+  }
 })
 </script>
 

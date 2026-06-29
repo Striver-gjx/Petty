@@ -23,7 +23,8 @@ public class JwtAuthFilter implements Filter {
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/api/v1/service-types",
-            "/h2-console"
+            "/h2-console",
+            "/actuator"
     );
 
     @Override

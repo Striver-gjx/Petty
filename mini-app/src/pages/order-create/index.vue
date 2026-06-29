@@ -72,7 +72,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { petApi, orderApi } from '@/api'
+import { petApi, orderApi, paymentApi } from '@/api'
 import type { Pet } from '@/types'
 
 const serviceTypeId = ref(0)
@@ -126,7 +126,8 @@ async function submitOrder() {
       longitude: 116.4716,
       remark: form.value.remark || undefined,
     }
-    await orderApi.create(1, data)
+    const order = await orderApi.create(data)
+    await paymentApi.pay(order.id, 'WECHAT')
     uni.showToast({ title: '预约成功', icon: 'success' })
     setTimeout(() => uni.switchTab({ url: '/pages/orders/index' }), 1500)
   } catch (e) {
@@ -142,7 +143,7 @@ onLoad((query) => {
 
 onMounted(async () => {
   try {
-    pets.value = await petApi.list(1)
+    pets.value = await petApi.list()
   } catch (e) { console.error(e) }
 })
 </script>

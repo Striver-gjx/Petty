@@ -18,6 +18,8 @@ public interface OrderService {
 
     void acceptOrder(Long orderId, Long sitterId);
 
+    void startEnRoute(Long orderId, Long sitterId);
+
     void rejectOrder(Long orderId, Long sitterId, String reason);
 
     void checkIn(Long orderId, Long sitterId, CheckInDTO dto);

@@ -5,6 +5,7 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   data?: Record<string, unknown>
   params?: Record<string, unknown>
+  noAuth?: boolean
 }
 
 interface ApiResponse<T = unknown> {
@@ -23,21 +24,35 @@ function buildUrl(url: string, params?: Record<string, unknown>): string {
 }
 
 export function request<T = unknown>(options: RequestOptions): Promise<T> {
-  const { url, method = 'GET', data, params } = options
+  const { url, method = 'GET', data, params, noAuth = false } = options
   const fullUrl = buildUrl(`${BASE_URL}${url}`, params)
+
+  const header: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  if (!noAuth) {
+    const token = uni.getStorageSync('token')
+    if (token) {
+      header['Authorization'] = `Bearer ${token}`
+    }
+  }
 
   return new Promise((resolve, reject) => {
     uni.request({
       url: fullUrl,
       method,
       data,
-      header: {
-        'Content-Type': 'application/json',
-      },
+      header,
       success: (res) => {
         const body = res.data as ApiResponse<T>
         if (body.code === 200) {
           resolve(body.data)
+        } else if (body.code === 401) {
+          uni.removeStorageSync('token')
+          uni.removeStorageSync('role')
+          uni.reLaunch({ url: '/pages/login/index' })
+          reject(new Error('登录已过期'))
         } else {
           uni.showToast({ title: body.message || '请求失败', icon: 'none' })
           reject(new Error(body.message))

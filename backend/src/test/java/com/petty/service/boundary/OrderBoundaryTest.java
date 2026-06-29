@@ -41,6 +41,7 @@ class OrderBoundaryTest {
     @Mock private ServiceTypeMapper serviceTypeMapper;
     @Mock private ServiceLogMapper serviceLogMapper;
     @Mock private OrderPetMapper orderPetMapper;
+    @Mock private SitterScheduleMapper sitterScheduleMapper;
     @Mock private MatchingEngine matchingEngine;
     @Mock private PaymentService paymentService;
 
@@ -104,6 +105,7 @@ class OrderBoundaryTest {
         void checkOut_justWithin500m_success() {
             mockOrder.setStatus(OrderStatus.IN_SERVICE.name());
             when(orderMapper.selectById(1L)).thenReturn(mockOrder);
+            when(serviceLogMapper.selectCount(any())).thenReturn(1L);
 
             CheckOutDTO dto = new CheckOutDTO();
             dto.setLatitude(new BigDecimal("39.9117"));

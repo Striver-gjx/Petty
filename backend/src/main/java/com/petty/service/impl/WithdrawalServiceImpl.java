@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +35,14 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         Sitter sitter = sitterMapper.selectById(sitterId);
         if (sitter == null) throw new BusinessException("喂养师不存在");
 
+        BigDecimal balance = sitter.getWalletBalance() != null ? sitter.getWalletBalance() : BigDecimal.ZERO;
+        if (dto.getAmount().compareTo(balance) > 0) {
+            throw new BusinessException("余额不足，当前可提现: ¥" + balance);
+        }
+        if (dto.getAmount().compareTo(new BigDecimal("10")) < 0) {
+            throw new BusinessException("最低提现金额为10元");
+        }
+
         Long todayCount = withdrawalMapper.selectCount(
                 new LambdaQueryWrapper<SitterWithdrawal>()
                         .eq(SitterWithdrawal::getSitterId, sitterId)
@@ -41,6 +51,9 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             throw new BusinessException("每日最多提现1次");
         }
 
+        sitter.setWalletBalance(balance.subtract(dto.getAmount()));
+        sitterMapper.updateById(sitter);
+
         SitterWithdrawal withdrawal = new SitterWithdrawal();
         withdrawal.setSitterId(sitterId);
         withdrawal.setAmount(dto.getAmount());
@@ -48,7 +61,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         withdrawal.setCreatedAt(LocalDateTime.now());
         withdrawalMapper.insert(withdrawal);
 
-        log.info("提现申请创建: sitterId={}, amount={}", sitterId, dto.getAmount());
+        log.info("提现申请创建: sitterId={}, amount={}, remainBalance={}", sitterId, dto.getAmount(), sitter.getWalletBalance());
     }
 
     @Override

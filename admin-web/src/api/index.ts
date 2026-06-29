@@ -1,5 +1,10 @@
 import request from './request';
 
+export const authApi = {
+  login: (phone: string, role: string) => request.post('/auth/login', { phone, role }),
+  me: () => request.get('/auth/me'),
+};
+
 export const ownerApi = {
   list: () => request.get('/owners'),
   get: (id: number) => request.get(`/owners/${id}`),
@@ -21,15 +26,20 @@ export const sitterApi = {
   get: (id: number) => request.get(`/sitters/${id}`),
   create: (data: Record<string, unknown>) => request.post('/sitters', data),
   update: (id: number, data: Record<string, unknown>) => request.put(`/sitters/${id}`, data),
+  approve: (id: number) => request.post(`/sitters/${id}/approve`),
+  reject: (id: number, reason?: string) => request.post(`/sitters/${id}/reject`, { reason }),
+  suspend: (id: number) => request.put(`/sitters/${id}`, { status: 'SUSPENDED' }),
+  activate: (id: number) => request.put(`/sitters/${id}`, { status: 'ACTIVE' }),
 };
 
 export const orderApi = {
-  list: (params?: Record<string, unknown>) => request.get('/orders', { params }),
+  listAll: (params?: Record<string, unknown>) => request.get('/orders/all', { params }),
   get: (id: number) => request.get(`/orders/${id}`),
-  create: (data: Record<string, unknown>) => request.post('/orders', data),
-  updateStatus: (id: number, status: string) => request.put(`/orders/${id}/status`, { status }),
 };
 
 export const serviceTypeApi = {
   list: () => request.get('/service-types'),
+  create: (data: Record<string, unknown>) => request.post('/service-types', data),
+  update: (id: number, data: Record<string, unknown>) => request.put(`/service-types/${id}`, data),
+  delete: (id: number) => request.delete(`/service-types/${id}`),
 };

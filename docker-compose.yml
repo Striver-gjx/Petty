@@ -1,9 +1,42 @@
-# Petty 本地开发环境
+# Petty 本地开发/部署环境
 # 使用方法: docker-compose up -d
 
 version: '3.8'
 
 services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: petty-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/petty?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: petty
+      SPRING_DATASOURCE_PASSWORD: petty123
+      PETTY_JWT_SECRET: petty-production-jwt-secret-key-change-in-prod
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  admin-web:
+    build:
+      context: ./admin-web
+      dockerfile: Dockerfile
+    container_name: petty-admin-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
   mysql:
     image: mysql:8.0
     container_name: petty-mysql
@@ -37,24 +70,6 @@ services:
       timeout: 5s
       retries: 5
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: petty-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: petty
-      RABBITMQ_DEFAULT_PASS: petty123
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - petty-rabbitmq-data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
 volumes:
   petty-mysql-data:
   petty-redis-data:
-  petty-rabbitmq-data:

@@ -15,6 +15,11 @@ public class Review {
     private String reviewerType;
     private Long targetId;
     private BigDecimal rating;
+    private BigDecimal ratingPunctuality;
+    private BigDecimal ratingProfessionalism;
+    private BigDecimal ratingAttitude;
+    private BigDecimal ratingPetCare;
+    private BigDecimal ratingEnvironment;
     private String content;
     private String photoUrls;
     private String tags;

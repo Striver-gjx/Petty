@@ -17,7 +17,7 @@ export default function Dashboard() {
     Promise.all([
       ownerApi.list(),
       sitterApi.list(),
-      orderApi.list(),
+      orderApi.listAll(),
       serviceTypeApi.list(),
     ]).then(([owners, sitters, orders, types]) => {
       setStats({

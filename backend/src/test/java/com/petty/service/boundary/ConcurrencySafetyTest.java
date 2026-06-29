@@ -43,6 +43,7 @@ class ConcurrencySafetyTest {
         @Mock private ServiceTypeMapper serviceTypeMapper;
         @Mock private ServiceLogMapper serviceLogMapper;
         @Mock private OrderPetMapper orderPetMapper;
+        @Mock private SitterScheduleMapper sitterScheduleMapper;
         @Mock private MatchingEngine matchingEngine;
         @Mock private PaymentService paymentService;
 

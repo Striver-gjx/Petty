@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS sitter (
     insurance_status VARCHAR(20) DEFAULT 'NONE',
     status VARCHAR(30) NOT NULL DEFAULT 'PENDING_REVIEW',
     openid VARCHAR(128),
+    wallet_balance DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -152,6 +153,11 @@ CREATE TABLE IF NOT EXISTS review (
     reviewer_type VARCHAR(20) NOT NULL,
     target_id BIGINT NOT NULL,
     rating DECIMAL(3, 2) NOT NULL,
+    rating_punctuality DECIMAL(3, 2),
+    rating_professionalism DECIMAL(3, 2),
+    rating_attitude DECIMAL(3, 2),
+    rating_pet_care DECIMAL(3, 2),
+    rating_environment DECIMAL(3, 2),
     content TEXT,
     photo_urls TEXT,
     tags VARCHAR(500),
@@ -190,4 +196,16 @@ CREATE TABLE IF NOT EXISTS sitter_withdrawal (
     remark VARCHAR(500),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sitter_schedule (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    sitter_id BIGINT NOT NULL,
+    schedule_date DATE NOT NULL,
+    time_slot_start TIME NOT NULL,
+    time_slot_end TIME NOT NULL,
+    max_orders INT NOT NULL DEFAULT 3,
+    booked_orders INT NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

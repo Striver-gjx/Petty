@@ -48,6 +48,13 @@ public class ReviewServiceImpl implements ReviewService {
             throw new BusinessException("订单未完成，不能评价");
         }
 
+        if (order.getUpdatedAt() != null) {
+            long hoursSinceConfirm = java.time.Duration.between(order.getUpdatedAt(), java.time.LocalDateTime.now()).toHours();
+            if (hoursSinceConfirm > 72) {
+                throw new BusinessException("评价窗口已关闭（确认后72小时内可评价）");
+            }
+        }
+
         Long existingCount = reviewMapper.selectCount(
                 new LambdaQueryWrapper<Review>()
                         .eq(Review::getOrderId, dto.getOrderId())
@@ -65,6 +72,11 @@ public class ReviewServiceImpl implements ReviewService {
         review.setReviewerType(reviewerType);
         review.setTargetId(targetId);
         review.setRating(dto.getRating());
+        review.setRatingPunctuality(dto.getRatingPunctuality());
+        review.setRatingProfessionalism(dto.getRatingProfessionalism());
+        review.setRatingAttitude(dto.getRatingAttitude());
+        review.setRatingPetCare(dto.getRatingPetCare());
+        review.setRatingEnvironment(dto.getRatingEnvironment());
         review.setContent(dto.getContent());
         review.setPhotoUrls(dto.getPhotoUrls() != null ? String.join(",", dto.getPhotoUrls()) : null);
         review.setTags(dto.getTags() != null ? String.join(",", dto.getTags()) : null);
@@ -152,5 +164,39 @@ public class ReviewServiceImpl implements ReviewService {
             }
         }
         return vo;
+    }
+
+    @Override
+    public boolean hasReview(Long orderId, Long reviewerId) {
+        Long count = reviewMapper.selectCount(
+                new LambdaQueryWrapper<Review>()
+                        .eq(Review::getOrderId, orderId)
+                        .eq(Review::getReviewerId, reviewerId));
+        return count != null && count > 0;
+    }
+
+    @Override
+    @Transactional
+    public void createAutoReview(Long orderId, Long ownerId, Long sitterId) {
+        if (hasReview(orderId, ownerId)) {
+            return;
+        }
+        Review review = new Review();
+        review.setOrderId(orderId);
+        review.setReviewerId(ownerId);
+        review.setReviewerType("OWNER");
+        review.setTargetId(sitterId);
+        review.setRating(new BigDecimal("5.0"));
+        review.setRatingPunctuality(new BigDecimal("5.0"));
+        review.setRatingProfessionalism(new BigDecimal("5.0"));
+        review.setRatingAttitude(new BigDecimal("5.0"));
+        review.setRatingPetCare(new BigDecimal("5.0"));
+        review.setRatingEnvironment(new BigDecimal("5.0"));
+        review.setContent("系统默认好评");
+        review.setIsAnonymous(0);
+        review.setCreatedAt(java.time.LocalDateTime.now());
+        reviewMapper.insert(review);
+        updateSitterRating(sitterId);
+        log.info("自动评价创建: orderId={}, rating=5.0", orderId);
     }
 }

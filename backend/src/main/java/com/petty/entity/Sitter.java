@@ -36,6 +36,7 @@ public class Sitter {
     private String insuranceStatus;
     private String status;
     private String openid;
+    private BigDecimal walletBalance;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
     @TableField(fill = FieldFill.INSERT_UPDATE)

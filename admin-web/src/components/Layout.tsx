@@ -1,11 +1,12 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ClipboardList, 
   Users, 
   PawPrint, 
   UserCheck,
-  Settings 
+  Settings,
+  LogOut
 } from 'lucide-react';
 
 const navItems = [
@@ -18,6 +19,13 @@ const navItems = [
 ];
 
 export default function Layout() {
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    localStorage.removeItem('admin_token');
+    navigate('/login', { replace: true });
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -45,8 +53,14 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-gray-200 text-xs text-gray-400">
-          Petty v0.1.0
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            退出登录
+          </button>
         </div>
       </aside>
       <main className="flex-1 overflow-auto">

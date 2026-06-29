@@ -32,6 +32,35 @@ logging:
   level:
     com.petty: DEBUG
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/petty}
+    username: ${SPRING_DATASOURCE_USERNAME:petty}
+    password: ${SPRING_DATASOURCE_PASSWORD:petty123}
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false
+
+server:
+  port: 8080
+
 ---
 spring:
   config:

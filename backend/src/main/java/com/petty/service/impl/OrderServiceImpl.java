@@ -38,6 +38,7 @@ public class OrderServiceImpl implements OrderService {
     private final ServiceTypeMapper serviceTypeMapper;
     private final ServiceLogMapper serviceLogMapper;
     private final OrderPetMapper orderPetMapper;
+    private final SitterScheduleMapper sitterScheduleMapper;
     private final MatchingEngine matchingEngine;
     private final PaymentService paymentService;
 
@@ -86,8 +87,10 @@ public class OrderServiceImpl implements OrderService {
         order.setPetCount(pets.size());
         order.setServiceAmount(serviceAmount);
         order.setExtraAmount(extraAmount);
-        order.setDiscountAmount(BigDecimal.ZERO);
-        order.setTotalAmount(totalAmount);
+
+        BigDecimal discount = calculateMemberDiscount(owner, totalAmount);
+        order.setDiscountAmount(discount);
+        order.setTotalAmount(totalAmount.subtract(discount));
         order.setRemark(dto.getRemark());
         order.setPaymentStatus("UNPAID");
         order.setCreatedAt(LocalDateTime.now());
@@ -187,15 +190,39 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    public void startEnRoute(Long orderId, Long sitterId) {
+        ServiceOrder order = getOrderOrThrow(orderId);
+        assertStatus(order, OrderStatus.ACCEPTED);
+        if (!sitterId.equals(order.getSitterId())) {
+            throw new BusinessException("非指派喂养师，无法操作");
+        }
+        order.setStatus(OrderStatus.SITTER_EN_ROUTE.name());
+        order.setUpdatedAt(LocalDateTime.now());
+        orderMapper.updateById(order);
+        log.info("喂养师 {} 出发前往: {}", sitterId, order.getOrderNo());
+    }
+
+    @Override
+    @Transactional
     public void rejectOrder(Long orderId, Long sitterId, String reason) {
         ServiceOrder order = getOrderOrThrow(orderId);
         assertStatus(order, OrderStatus.PENDING_ACCEPT);
+        if (!sitterId.equals(order.getSitterId())) {
+            throw new BusinessException("非指派喂养师，无法操作");
+        }
         order.setStatus(OrderStatus.PENDING_MATCH.name());
         order.setSitterId(null);
         order.setCancelReason(reason);
         order.setUpdatedAt(LocalDateTime.now());
         orderMapper.updateById(order);
         log.info("喂养师 {} 拒单: {}, 原因: {}", sitterId, order.getOrderNo(), reason);
+
+        List<OrderPet> orderPets = orderPetMapper.selectList(
+                new LambdaQueryWrapper<OrderPet>().eq(OrderPet::getOrderId, orderId));
+        List<Long> petIds = orderPets.stream().map(OrderPet::getPetId).toList();
+        List<Pet> pets = petIds.isEmpty() ? List.of() :
+                petMapper.selectList(new LambdaQueryWrapper<Pet>().in(Pet::getId, petIds));
+        tryAutoMatch(order, pets, order.getServiceLatitude(), order.getServiceLongitude());
     }
 
     @Override
@@ -242,6 +269,14 @@ public class OrderServiceImpl implements OrderService {
         }
         assertStatus(order, OrderStatus.IN_SERVICE);
 
+        Long logCount = serviceLogMapper.selectCount(
+                new LambdaQueryWrapper<ServiceLog>()
+                        .eq(ServiceLog::getOrderId, orderId)
+                        .ne(ServiceLog::getLogType, "CHECK_IN"));
+        if (logCount == null || logCount < 1) {
+            throw new BusinessException("请至少提交一条服务记录后再完成打卡");
+        }
+
         validateGps(dto.getLatitude(), dto.getLongitude(),
                 order.getServiceLatitude(), order.getServiceLongitude(),
                 GPS_CHECK_OUT_THRESHOLD_KM, "离开打卡");
@@ -285,6 +320,24 @@ public class OrderServiceImpl implements OrderService {
         orderMapper.updateById(order);
         
         paymentService.capturePayment(orderId);
+
+        Owner owner = ownerMapper.selectById(ownerId);
+        if (owner != null) {
+            owner.setTotalOrders((owner.getTotalOrders() != null ? owner.getTotalOrders() : 0) + 1);
+            owner.setTotalSpent((owner.getTotalSpent() != null ? owner.getTotalSpent() : BigDecimal.ZERO).add(order.getTotalAmount()));
+            ownerMapper.updateById(owner);
+            tryUpgradeMember(owner);
+        }
+
+        if (order.getSitterId() != null && order.getSitterIncome() != null) {
+            Sitter sitter = sitterMapper.selectById(order.getSitterId());
+            if (sitter != null) {
+                BigDecimal currentBalance = sitter.getWalletBalance() != null ? sitter.getWalletBalance() : BigDecimal.ZERO;
+                sitter.setWalletBalance(currentBalance.add(order.getSitterIncome()));
+                sitter.setTotalOrders((sitter.getTotalOrders() != null ? sitter.getTotalOrders() : 0) + 1);
+                sitterMapper.updateById(sitter);
+            }
+        }
         
         log.info("主人 {} 确认服务: {}", ownerId, order.getOrderNo());
     }
@@ -359,14 +412,22 @@ public class OrderServiceImpl implements OrderService {
 
         List<Sitter> inRange = matchingEngine.filterByDistance(active, lat, lng);
 
-        String species = pets.get(0).getSpecies();
-        List<Sitter> speciesMatch = matchingEngine.filterBySpecies(inRange, species);
+        String species = pets.isEmpty() ? null : pets.get(0).getSpecies();
+        List<Sitter> speciesMatch = species != null ? matchingEngine.filterBySpecies(inRange, species) : inRange;
 
-        if (!speciesMatch.isEmpty()) {
-            List<MatchingEngine.ScoredSitter> ranked = matchingEngine.rank(speciesMatch, lat, lng);
+        List<SitterSchedule> schedules = sitterScheduleMapper.selectList(
+                new LambdaQueryWrapper<SitterSchedule>()
+                        .eq(SitterSchedule::getScheduleDate, order.getScheduledDate())
+                        .eq(SitterSchedule::getStatus, "AVAILABLE"));
+        List<Sitter> available = matchingEngine.filterBySchedule(speciesMatch, schedules,
+                order.getScheduledDate(), order.getScheduledStartTime());
+
+        if (!available.isEmpty()) {
+            List<MatchingEngine.ScoredSitter> ranked = matchingEngine.rank(available, lat, lng);
             if (!ranked.isEmpty()) {
                 order.setSitterId(ranked.get(0).sitter().getId());
                 order.setStatus(OrderStatus.PENDING_ACCEPT.name());
+                orderMapper.updateById(order);
                 log.info("自动匹配喂养师: {}, 分数: {}", ranked.get(0).sitter().getName(), String.format("%.2f", ranked.get(0).score()));
             }
         }
@@ -490,5 +551,35 @@ public class OrderServiceImpl implements OrderService {
             vo.setPhotoUrls(List.of(log.getPhotoUrls().split(",")));
         }
         return vo;
+    }
+
+    private BigDecimal calculateMemberDiscount(Owner owner, BigDecimal amount) {
+        if (owner == null || owner.getMemberLevel() == null) return BigDecimal.ZERO;
+        BigDecimal rate = switch (owner.getMemberLevel()) {
+            case "VIP" -> new BigDecimal("0.05");
+            case "SVIP" -> new BigDecimal("0.10");
+            default -> BigDecimal.ZERO;
+        };
+        return amount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private void tryUpgradeMember(Owner owner) {
+        if (owner == null) return;
+        int orders = owner.getTotalOrders() != null ? owner.getTotalOrders() : 0;
+        BigDecimal spent = owner.getTotalSpent() != null ? owner.getTotalSpent() : BigDecimal.ZERO;
+        String currentLevel = owner.getMemberLevel() != null ? owner.getMemberLevel() : "NORMAL";
+
+        String newLevel = currentLevel;
+        if (spent.compareTo(new BigDecimal("5000")) >= 0 || orders >= 50) {
+            newLevel = "SVIP";
+        } else if (spent.compareTo(new BigDecimal("1000")) >= 0 || orders >= 10) {
+            newLevel = "VIP";
+        }
+
+        if (!newLevel.equals(currentLevel)) {
+            owner.setMemberLevel(newLevel);
+            ownerMapper.updateById(owner);
+            log.info("用户 {} 升级为 {}", owner.getId(), newLevel);
+        }
     }
 }

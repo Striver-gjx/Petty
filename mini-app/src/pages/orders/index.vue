@@ -63,7 +63,7 @@ function goDetail(id: number) {
 async function loadOrders() {
   loading.value = true
   try {
-    orders.value = await orderApi.list({ ownerId: 1 })
+    orders.value = await orderApi.list()
   } catch (e) { console.error(e) }
   finally { loading.value = false }
 }

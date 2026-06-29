@@ -1,6 +1,7 @@
 package com.petty.controller;
 
 import com.petty.common.result.Result;
+import com.petty.common.security.RequireRole;
 import com.petty.common.security.UserContext;
 import com.petty.dto.*;
 import com.petty.service.OrderService;
@@ -32,6 +33,7 @@ public class OrderController {
     }
 
     @GetMapping("/all")
+    @RequireRole("ADMIN")
     public Result<List<OrderVO>> listAll(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long ownerId,
@@ -54,6 +56,13 @@ public class OrderController {
     public Result<Void> accept(@PathVariable Long id) {
         Long sitterId = UserContext.getUserId();
         orderService.acceptOrder(id, sitterId);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/en-route")
+    public Result<Void> enRoute(@PathVariable Long id) {
+        Long sitterId = UserContext.getUserId();
+        orderService.startEnRoute(id, sitterId);
         return Result.success();
     }
 

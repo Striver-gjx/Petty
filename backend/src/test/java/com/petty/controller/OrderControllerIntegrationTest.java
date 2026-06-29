@@ -90,7 +90,7 @@ class OrderControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.orderNo").exists())
-                .andExpect(jsonPath("$.data.totalAmount").value(49.0))
+                .andExpect(jsonPath("$.data.totalAmount").value(46.55))
                 .andExpect(jsonPath("$.data.status").value("PENDING_ACCEPT"))
                 .andExpect(jsonPath("$.data.sitterName").isNotEmpty());
     }

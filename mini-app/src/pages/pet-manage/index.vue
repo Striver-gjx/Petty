@@ -2,13 +2,14 @@
   <view class="container">
     <view class="section-title">我的宠物</view>
 
-    <view v-for="pet in pets" :key="pet.id" class="card pet-card">
+    <view v-for="pet in pets" :key="pet.id" class="card pet-card" @tap="editPet(pet.id)">
       <view class="pet-header">
         <view class="pet-avatar">{{ getSpeciesIcon(pet.species) }}</view>
         <view class="pet-info">
           <text class="pet-name">{{ pet.name }}</text>
           <text class="pet-meta">{{ pet.breed }} · {{ pet.weight }}kg</text>
         </view>
+        <view class="pet-edit-hint">编辑</view>
       </view>
       <view class="pet-details" v-if="pet.personality">
         <text class="pet-detail-label">性格：</text>
@@ -31,7 +32,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { petApi } from '@/api'
 import type { Pet } from '@/types'
 
@@ -45,15 +47,22 @@ const speciesIcons: Record<string, string> = {
 function getSpeciesIcon(species: string) { return speciesIcons[species] || '🐾' }
 
 function addPet() {
-  uni.showToast({ title: '添加宠物功能开发中', icon: 'none' })
+  uni.navigateTo({ url: '/pages/pet-edit/index' })
 }
 
-onMounted(async () => {
+function editPet(id: number) {
+  uni.navigateTo({ url: `/pages/pet-edit/index?id=${id}` })
+}
+
+async function loadPets() {
+  loading.value = true
   try {
-    pets.value = await petApi.list(1)
+    pets.value = await petApi.list()
   } catch (e) { console.error(e) }
   finally { loading.value = false }
-})
+}
+
+onShow(() => { loadPets() })
 </script>
 
 <style scoped>
@@ -69,7 +78,8 @@ onMounted(async () => {
   justify-content: center;
   font-size: 40rpx;
 }
-.pet-info { margin-left: 20rpx; }
+.pet-info { margin-left: 20rpx; flex: 1; }
+.pet-edit-hint { font-size: 24rpx; color: #FF6B35; }
 .pet-name { font-size: 30rpx; font-weight: 600; display: block; }
 .pet-meta { font-size: 24rpx; color: #999; margin-top: 4rpx; display: block; }
 .pet-details { font-size: 26rpx; color: #666; margin-top: 8rpx; }

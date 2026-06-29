@@ -95,6 +95,28 @@ public class MatchingEngine {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * 过滤在指定日期和时间段有空闲排班的喂养师
+     * 如果喂养师没有排班记录，默认认为全天可用
+     */
+    public List<Sitter> filterBySchedule(List<Sitter> sitters, List<com.petty.entity.SitterSchedule> schedules,
+                                          java.time.LocalDate date, java.time.LocalTime startTime) {
+        if (schedules == null || schedules.isEmpty()) return sitters;
+
+        Map<Long, List<com.petty.entity.SitterSchedule>> byId = schedules.stream()
+                .collect(Collectors.groupingBy(com.petty.entity.SitterSchedule::getSitterId));
+
+        return sitters.stream().filter(s -> {
+            List<com.petty.entity.SitterSchedule> slots = byId.get(s.getId());
+            if (slots == null || slots.isEmpty()) return true;
+            return slots.stream().anyMatch(slot ->
+                    "AVAILABLE".equals(slot.getStatus()) &&
+                    slot.getBookedOrders() < slot.getMaxOrders() &&
+                    !startTime.isBefore(slot.getTimeSlotStart()) &&
+                    !startTime.isAfter(slot.getTimeSlotEnd()));
+        }).collect(Collectors.toList());
+    }
+
     private double haversineKm(double lat1, double lng1, double lat2, double lng2) {
         double R = 6371;
         double dLat = Math.toRadians(lat2 - lat1);

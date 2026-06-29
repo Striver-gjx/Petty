@@ -7,4 +7,6 @@ import java.util.List;
 public interface ReviewService {
     void createReview(Long reviewerId, String reviewerType, ReviewCreateDTO dto);
     List<ReviewVO> listSitterReviews(Long sitterId);
+    void createAutoReview(Long orderId, Long ownerId, Long sitterId);
+    boolean hasReview(Long orderId, Long reviewerId);
 }

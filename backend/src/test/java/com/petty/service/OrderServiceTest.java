@@ -42,6 +42,7 @@ class OrderServiceTest {
     @Mock private ServiceTypeMapper serviceTypeMapper;
     @Mock private ServiceLogMapper serviceLogMapper;
     @Mock private OrderPetMapper orderPetMapper;
+    @Mock private SitterScheduleMapper sitterScheduleMapper;
     @Mock private MatchingEngine matchingEngine;
     @Mock private PaymentService paymentService;
 
@@ -113,6 +114,7 @@ class OrderServiceTest {
             when(sitterMapper.selectList(any())).thenReturn(List.of(mockSitter));
             when(matchingEngine.filterByDistance(any(), any(), any())).thenReturn(List.of(mockSitter));
             when(matchingEngine.filterBySpecies(any(), eq("CAT"))).thenReturn(List.of(mockSitter));
+            when(matchingEngine.filterBySchedule(any(), any(), any(), any())).thenReturn(List.of(mockSitter));
             when(matchingEngine.rank(any(), any(), any()))
                     .thenReturn(List.of(new MatchingEngine.ScoredSitter(mockSitter, 0.9, 1.0)));
 
@@ -146,6 +148,7 @@ class OrderServiceTest {
             when(sitterMapper.selectList(any())).thenReturn(List.of(mockSitter));
             when(matchingEngine.filterByDistance(any(), any(), any())).thenReturn(List.of(mockSitter));
             when(matchingEngine.filterBySpecies(any(), eq("CAT"))).thenReturn(List.of(mockSitter));
+            when(matchingEngine.filterBySchedule(any(), any(), any(), any())).thenReturn(List.of(mockSitter));
             when(matchingEngine.rank(any(), any(), any()))
                     .thenReturn(List.of(new MatchingEngine.ScoredSitter(mockSitter, 0.9, 1.0)));
 
@@ -265,6 +268,7 @@ class OrderServiceTest {
         void checkOut_withinRange_success() {
             mockOrder.setStatus(OrderStatus.IN_SERVICE.name());
             when(orderMapper.selectById(1L)).thenReturn(mockOrder);
+            when(serviceLogMapper.selectCount(any())).thenReturn(2L);
 
             CheckOutDTO dto = new CheckOutDTO();
             dto.setLatitude(new BigDecimal("39.9090"));
