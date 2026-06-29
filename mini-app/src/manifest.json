@@ -1,0 +1,42 @@
+{
+  "name": "Petty",
+  "appid": "",
+  "description": "宠物上门喂养服务平台",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "app-plus": {
+    "modules": {},
+    "distribute": {
+      "android": {
+        "permissions": ["<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>"]
+      },
+      "ios": {}
+    }
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    },
+    "usingComponents": true,
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于获取您的位置，为您匹配附近喂养师"
+      }
+    }
+  },
+  "h5": {
+    "router": {
+      "mode": "history"
+    },
+    "devServer": {
+      "proxy": {
+        "/api": {
+          "target": "http://localhost:18080",
+          "changeOrigin": true
+        }
+      }
+    }
+  }
+}

@@ -38,3 +38,5 @@ coverage/
 
 # Docker volumes (local)
 docker-data/
+mini-app/dist/
+mini-app/node_modules/
