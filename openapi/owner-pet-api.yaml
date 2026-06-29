@@ -4,6 +4,8 @@ info:
   version: 1.0.0
   description: 宠物主人与宠物档案管理接口
 
+security:
+  - bearerAuth: []
 paths:
   /api/v1/owners/profile:
     get:

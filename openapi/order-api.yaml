@@ -4,6 +4,8 @@ info:
   version: 1.0.0
   description: 服务订单管理接口（下单、状态流转、服务记录）
 
+security:
+  - bearerAuth: []
 paths:
   /api/v1/orders:
     get:
@@ -351,3 +353,10 @@ components:
         data:
           type: array
           items: { $ref: '#/components/schemas/ServiceLogVO' }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "登录接口 /api/v1/auth/login 返回的 token"

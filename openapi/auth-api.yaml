@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: Petty - Auth API
+  version: 1.0.0
+  description: 认证接口（登录、获取当前用户信息）
+
+paths:
+  /api/v1/auth/login:
+    post:
+      summary: 手机号登录（开发阶段简化版）
+      operationId: login
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDTO'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResultResponse'
+
+  /api/v1/auth/me:
+    get:
+      summary: 获取当前登录用户信息
+      operationId: getCurrentUser
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfoResponse'
+        '401':
+          description: 未登录或 token 过期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    LoginDTO:
+      type: object
+      required: [phone, role]
+      properties:
+        phone:
+          type: string
+          description: 手机号
+          example: "13800001111"
+        role:
+          type: string
+          enum: [OWNER, SITTER]
+          description: 登录角色
+
+    LoginResultResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              description: JWT Token
+            userId:
+              type: integer
+              format: int64
+            name:
+              type: string
+
+    UserInfoResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 200 }
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            userId: { type: integer, format: int64 }
+            role: { type: string, enum: [OWNER, SITTER] }
+
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: integer, example: 401 }
+        message: { type: string, example: "未登录或token已过期" }
+        data: { nullable: true }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "通过 /api/v1/auth/login 获取的 JWT token"

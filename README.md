@@ -76,13 +76,16 @@ npx uni -p mp-weixin
 
 ### 已实现
 
+- **JWT 认证**: 登录获取 token，所有接口通过 Bearer token 鉴权
 - **订单全生命周期**: 下单 > 匹配 > 接单 > 打卡 > 服务 > 完成 > 确认
 - **智能匹配引擎**: 距离(30%) + 评分(30%) + 完成率(20%) + 响应速度(20%)
 - **GPS 打卡**: 到达 200m / 离开 500m 范围校验
-- **支付模块**: 预授权冻结 > 确认扣款 > 退款
+- **支付模块**: 预授权冻结 > 确认扣款 > 退款（含阶梯取消费率）
 - **评价模块**: 评分 / 图片 / 标签 / 匿名 / 联动惩罚
 - **提现模块**: 最低 50 元 / 日限 1 次 / 佣金分级
 - **取消规则**: 24h 前全额 / 2-24h 退 80% / 2h 内退 50%
+- **乐观锁**: 防止订单状态并发修改
+- **实体鉴权**: 宠物归属校验、喂养师身份验证
 
 ### 演示数据
 
@@ -95,19 +98,31 @@ npx uni -p mp-weixin
 ## API 示例
 
 ```bash
-# 查看服务类型
+# 1. 登录获取 token
+TOKEN=$(curl -s -X POST http://localhost:18080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"13800001111","role":"OWNER"}' | jq -r '.data.token')
+
+# 2. 查看服务类型（公开接口，无需 token）
 curl http://localhost:18080/api/v1/service-types
 
-# 创建订单
-curl -X POST "http://localhost:18080/api/v1/orders?ownerId=1" \
+# 3. 创建订单
+curl -X POST http://localhost:18080/api/v1/orders \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"serviceTypeId":1,"petIds":[1],"scheduledDate":"2026-07-01","scheduledStartTime":"10:00","scheduledEndTime":"10:30","serviceAddress":"北京市朝阳区建国路88号","latitude":39.9087,"longitude":116.4716}'
 
-# 接单
-curl -X POST "http://localhost:18080/api/v1/orders/1/accept?sitterId=1"
+# 4. 喂养师登录并接单
+SITTER_TOKEN=$(curl -s -X POST http://localhost:18080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"13900001111","role":"SITTER"}' | jq -r '.data.token')
 
-# 到达打卡
-curl -X POST "http://localhost:18080/api/v1/orders/1/check-in?sitterId=1" \
+curl -X POST http://localhost:18080/api/v1/orders/1/accept \
+  -H "Authorization: Bearer $SITTER_TOKEN"
+
+# 5. 到达打卡
+curl -X POST http://localhost:18080/api/v1/orders/1/check-in \
+  -H "Authorization: Bearer $SITTER_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"latitude":39.9087,"longitude":116.4716,"photoUrl":"https://example.com/arrive.jpg"}'
 ```

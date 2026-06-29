@@ -4,6 +4,8 @@ info:
   version: 1.0.0
   description: 喂养师管理接口（资料、排班、匹配搜索）
 
+security:
+  - bearerAuth: []
 paths:
   /api/v1/sitters/search:
     get:

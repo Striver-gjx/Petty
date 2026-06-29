@@ -4,6 +4,8 @@ info:
   version: 1.0.0
   description: 评价与支付结算接口
 
+security:
+  - bearerAuth: []
 paths:
   /api/v1/reviews:
     post:
@@ -247,3 +249,9 @@ components:
               type: array
               items: { $ref: '#/components/schemas/WithdrawalVO' }
             total: { type: integer }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
