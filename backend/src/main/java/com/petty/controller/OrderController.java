@@ -1,9 +1,12 @@
 package com.petty.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.petty.common.result.Result;
-import com.petty.entity.ServiceOrder;
+import com.petty.dto.*;
 import com.petty.service.OrderService;
+import com.petty.vo.OrderDetailVO;
+import com.petty.vo.OrderVO;
+import com.petty.vo.ServiceLogVO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,50 +20,81 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    public Result<List<ServiceOrder>> list(
+    public Result<List<OrderVO>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long ownerId,
             @RequestParam(required = false) Long sitterId) {
-
-        LambdaQueryWrapper<ServiceOrder> wrapper = new LambdaQueryWrapper<>();
-        if (status != null) wrapper.eq(ServiceOrder::getStatus, status);
-        if (ownerId != null) wrapper.eq(ServiceOrder::getOwnerId, ownerId);
-        if (sitterId != null) wrapper.eq(ServiceOrder::getSitterId, sitterId);
-        wrapper.orderByDesc(ServiceOrder::getCreatedAt);
-
-        return Result.success(orderService.list(wrapper));
+        return Result.success(orderService.listOrders(status, ownerId, sitterId));
     }
 
     @GetMapping("/{id}")
-    public Result<ServiceOrder> get(@PathVariable Long id) {
-        return Result.success(orderService.getById(id));
+    public Result<OrderDetailVO> get(@PathVariable Long id) {
+        return Result.success(orderService.getOrderDetail(id));
     }
 
     @PostMapping
-    public Result<ServiceOrder> create(@RequestBody ServiceOrder order) {
-        if (order.getOrderNo() == null) {
-            order.setOrderNo("ORD" + System.currentTimeMillis());
-        }
-        if (order.getStatus() == null) {
-            order.setStatus("PENDING_MATCH");
-        }
-        if (order.getPaymentStatus() == null) {
-            order.setPaymentStatus("UNPAID");
-        }
-        orderService.save(order);
-        return Result.success(order);
+    public Result<OrderVO> create(
+            @RequestParam(defaultValue = "1") Long ownerId,
+            @Valid @RequestBody OrderCreateDTO dto) {
+        return Result.success(orderService.createOrder(ownerId, dto));
     }
 
-    @PutMapping("/{id}/status")
-    public Result<Void> updateStatus(@PathVariable Long id, @RequestBody StatusDTO dto) {
-        ServiceOrder order = orderService.getById(id);
-        if (order == null) {
-            return Result.error(404, "订单不存在");
-        }
-        order.setStatus(dto.status());
-        orderService.updateById(order);
+    @PostMapping("/{id}/accept")
+    public Result<Void> accept(@PathVariable Long id,
+                               @RequestParam(defaultValue = "1") Long sitterId) {
+        orderService.acceptOrder(id, sitterId);
         return Result.success();
     }
 
-    public record StatusDTO(String status) {}
+    @PostMapping("/{id}/reject")
+    public Result<Void> reject(@PathVariable Long id,
+                               @RequestParam(defaultValue = "1") Long sitterId,
+                               @RequestBody(required = false) CancelDTO dto) {
+        orderService.rejectOrder(id, sitterId, dto != null ? dto.getReason() : null);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/check-in")
+    public Result<Void> checkIn(@PathVariable Long id,
+                                @RequestParam(defaultValue = "1") Long sitterId,
+                                @Valid @RequestBody CheckInDTO dto) {
+        orderService.checkIn(id, sitterId, dto);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/check-out")
+    public Result<Void> checkOut(@PathVariable Long id,
+                                 @RequestParam(defaultValue = "1") Long sitterId,
+                                 @Valid @RequestBody CheckOutDTO dto) {
+        orderService.checkOut(id, sitterId, dto);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/confirm")
+    public Result<Void> confirm(@PathVariable Long id,
+                                @RequestParam(defaultValue = "1") Long ownerId) {
+        orderService.confirmOrder(id, ownerId);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/cancel")
+    public Result<Void> cancel(@PathVariable Long id,
+                               @RequestParam(defaultValue = "1") Long userId,
+                               @RequestBody(required = false) CancelDTO dto) {
+        orderService.cancelOrder(id, userId, dto != null ? dto.getReason() : "用户取消");
+        return Result.success();
+    }
+
+    @GetMapping("/{id}/logs")
+    public Result<List<ServiceLogVO>> getLogs(@PathVariable Long id) {
+        return Result.success(orderService.getServiceLogs(id));
+    }
+
+    @PostMapping("/{id}/logs")
+    public Result<Void> addLog(@PathVariable Long id,
+                               @RequestParam(defaultValue = "1") Long sitterId,
+                               @Valid @RequestBody ServiceLogCreateDTO dto) {
+        orderService.addServiceLog(id, sitterId, dto);
+        return Result.success();
+    }
 }
