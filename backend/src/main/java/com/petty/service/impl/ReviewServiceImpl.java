@@ -36,6 +36,13 @@ public class ReviewServiceImpl implements ReviewService {
         ServiceOrder order = orderMapper.selectById(dto.getOrderId());
         if (order == null) throw new BusinessException("订单不存在");
 
+        if ("OWNER".equals(reviewerType) && !reviewerId.equals(order.getOwnerId())) {
+            throw new BusinessException("无权评价此订单");
+        }
+        if ("SITTER".equals(reviewerType) && !reviewerId.equals(order.getSitterId())) {
+            throw new BusinessException("无权评价此订单");
+        }
+
         OrderStatus status = OrderStatus.valueOf(order.getStatus());
         if (status != OrderStatus.OWNER_CONFIRMED && status != OrderStatus.SERVICE_COMPLETED) {
             throw new BusinessException("订单未完成，不能评价");

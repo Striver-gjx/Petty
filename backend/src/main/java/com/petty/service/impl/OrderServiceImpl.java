@@ -54,6 +54,14 @@ public class OrderServiceImpl implements OrderService {
 
         List<Pet> pets = petMapper.selectBatchIds(dto.getPetIds());
         if (pets.isEmpty()) throw new BusinessException("宠物列表为空");
+        if (pets.size() != dto.getPetIds().size()) {
+            throw new BusinessException("部分宠物ID无效");
+        }
+        for (Pet pet : pets) {
+            if (!ownerId.equals(pet.getOwnerId())) {
+                throw new BusinessException("宠物 " + pet.getName() + " 不属于当前用户");
+            }
+        }
 
         BigDecimal serviceAmount = serviceType.getBasePrice();
         BigDecimal extraAmount = serviceType.getExtraPetPrice()
@@ -169,6 +177,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void checkIn(Long orderId, Long sitterId, CheckInDTO dto) {
         ServiceOrder order = getOrderOrThrow(orderId);
+        if (!sitterId.equals(order.getSitterId())) {
+            throw new BusinessException("非指派喂养师，无法操作");
+        }
         OrderStatus current = OrderStatus.valueOf(order.getStatus());
         if (current != OrderStatus.ACCEPTED && current != OrderStatus.SITTER_EN_ROUTE) {
             throw new BusinessException("当前状态不允许打卡: " + current.getLabel());
@@ -201,6 +212,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void checkOut(Long orderId, Long sitterId, CheckOutDTO dto) {
         ServiceOrder order = getOrderOrThrow(orderId);
+        if (!sitterId.equals(order.getSitterId())) {
+            throw new BusinessException("非指派喂养师，无法操作");
+        }
         assertStatus(order, OrderStatus.IN_SERVICE);
 
         validateGps(dto.getLatitude(), dto.getLongitude(),
@@ -259,12 +273,20 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException("当前状态不允许取消: " + current.getLabel());
         }
 
-        BigDecimal refundRate = calculateRefundRate(order);
+        if (!userId.equals(order.getOwnerId()) && !userId.equals(order.getSitterId())) {
+            throw new BusinessException("无权取消此订单");
+        }
+
+        boolean isSitterCancel = userId.equals(order.getSitterId());
+        BigDecimal refundRate = isSitterCancel ? BigDecimal.ONE : calculateRefundRate(order);
+
         order.setStatus(OrderStatus.CANCELLED.name());
         order.setCancelReason(reason);
-        order.setCancelBy(userId.equals(order.getOwnerId()) ? "OWNER" : "SITTER");
+        order.setCancelBy(isSitterCancel ? "SITTER" : "OWNER");
         order.setUpdatedAt(LocalDateTime.now());
         orderMapper.updateById(order);
+
+        paymentService.processRefund(orderId, refundRate, reason);
 
         log.info("订单取消: {}, 退款比例: {}%, 原因: {}", order.getOrderNo(),
                 refundRate.multiply(BigDecimal.valueOf(100)), reason);
@@ -283,6 +305,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void addServiceLog(Long orderId, Long sitterId, ServiceLogCreateDTO dto) {
         ServiceOrder order = getOrderOrThrow(orderId);
+        if (!sitterId.equals(order.getSitterId())) {
+            throw new BusinessException("非指派喂养师，无法操作");
+        }
         if (!OrderStatus.IN_SERVICE.name().equals(order.getStatus())) {
             throw new BusinessException("只有服务中的订单才能添加记录");
         }

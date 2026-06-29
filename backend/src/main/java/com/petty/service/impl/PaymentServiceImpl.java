@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -84,6 +86,9 @@ public class PaymentServiceImpl implements PaymentService {
     public void requestRefund(Long ownerId, RefundDTO dto) {
         Payment payment = getPaymentEntity(dto.getOrderId());
         if (payment == null) throw new BusinessException("支付记录不存在");
+        if (!ownerId.equals(payment.getOwnerId())) {
+            throw new BusinessException("无权操作此订单的退款");
+        }
         if (!"AUTHORIZED".equals(payment.getStatus()) && !"CAPTURED".equals(payment.getStatus())) {
             throw new BusinessException("当前支付状态不支持退款");
         }
@@ -107,22 +112,51 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public void capturePayment(Long orderId) {
+    public void processRefund(Long orderId, BigDecimal refundRate, String reason) {
         Payment payment = getPaymentEntity(orderId);
         if (payment == null) return;
-        if (!"AUTHORIZED".equals(payment.getStatus())) return;
+        if (!"AUTHORIZED".equals(payment.getStatus()) && !"CAPTURED".equals(payment.getStatus())) return;
 
-        payment.setStatus("CAPTURED");
-        payment.setCapturedAt(LocalDateTime.now());
+        BigDecimal refundAmount = payment.getAmount().multiply(refundRate).setScale(2, RoundingMode.HALF_UP);
+
+        payment.setStatus("REFUNDED");
+        payment.setRefundAmount(refundAmount);
+        payment.setRefundReason(reason);
+        payment.setRefundAt(LocalDateTime.now());
         payment.setUpdatedAt(LocalDateTime.now());
         paymentMapper.updateById(payment);
 
         ServiceOrder order = orderMapper.selectById(orderId);
         if (order != null) {
-            order.setPaymentStatus("SETTLED");
+            order.setPaymentStatus("REFUNDED");
             order.setUpdatedAt(LocalDateTime.now());
             orderMapper.updateById(order);
         }
+
+        log.info("取消退款: orderId={}, 退款金额={}, 退款比例={}%", orderId, refundAmount,
+                refundRate.multiply(BigDecimal.valueOf(100)));
+    }
+
+    @Override
+    @Transactional
+    public void capturePayment(Long orderId) {
+        Payment payment = getPaymentEntity(orderId);
+        if (payment == null) {
+            log.warn("订单 {} 无支付记录，跳过扣款", orderId);
+            return;
+        }
+        if (!"AUTHORIZED".equals(payment.getStatus())) {
+            log.warn("订单 {} 支付状态为 {}，无法扣款", orderId, payment.getStatus());
+            if ("REFUNDED".equals(payment.getStatus())) {
+                throw new BusinessException("订单已退款，无法确认");
+            }
+            return;
+        }
+
+        payment.setStatus("CAPTURED");
+        payment.setCapturedAt(LocalDateTime.now());
+        payment.setUpdatedAt(LocalDateTime.now());
+        paymentMapper.updateById(payment);
 
         log.info("支付确认扣款: orderId={}", orderId);
     }

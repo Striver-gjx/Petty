@@ -10,4 +10,5 @@ public interface PaymentService {
     PaymentVO getByOrderId(Long orderId);
     void requestRefund(Long ownerId, RefundDTO dto);
     void capturePayment(Long orderId);
+    void processRefund(Long orderId, java.math.BigDecimal refundRate, String reason);
 }

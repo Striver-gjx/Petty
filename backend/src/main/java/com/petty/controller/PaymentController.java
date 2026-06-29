@@ -1,6 +1,7 @@
 package com.petty.controller;
 
 import com.petty.common.result.Result;
+import com.petty.common.security.UserContext;
 import com.petty.dto.PaymentInitDTO;
 import com.petty.dto.RefundDTO;
 import com.petty.service.PaymentService;
@@ -23,16 +24,14 @@ public class PaymentController {
     }
 
     @PostMapping("/pay")
-    public Result<PaymentResultVO> pay(
-            @RequestParam(defaultValue = "1") Long ownerId,
-            @Valid @RequestBody PaymentInitDTO dto) {
+    public Result<PaymentResultVO> pay(@Valid @RequestBody PaymentInitDTO dto) {
+        Long ownerId = UserContext.getUserId();
         return Result.success(paymentService.initiatePayment(ownerId, dto));
     }
 
     @PostMapping("/refund")
-    public Result<Void> refund(
-            @RequestParam(defaultValue = "1") Long ownerId,
-            @Valid @RequestBody RefundDTO dto) {
+    public Result<Void> refund(@Valid @RequestBody RefundDTO dto) {
+        Long ownerId = UserContext.getUserId();
         paymentService.requestRefund(ownerId, dto);
         return Result.success();
     }
