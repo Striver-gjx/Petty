@@ -1,0 +1,353 @@
+openapi: 3.0.3
+info:
+  title: Petty - Service Order API
+  version: 1.0.0
+  description: 服务订单管理接口（下单、状态流转、服务记录）
+
+paths:
+  /api/v1/orders:
+    get:
+      summary: 订单列表（主人/喂养师视角自动区分）
+      operationId: listOrders
+      tags: [Order]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResultOrderVO'
+    post:
+      summary: 创建服务订单（宠物主人下单）
+      operationId: createOrder
+      tags: [Order]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateDTO'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderVO'
+
+  /api/v1/orders/{id}:
+    get:
+      summary: 订单详情
+      operationId: getOrder
+      tags: [Order]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderDetailVO'
+
+  /api/v1/orders/{id}/accept:
+    post:
+      summary: 喂养师接单
+      operationId: acceptOrder
+      tags: [Order]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/orders/{id}/reject:
+    post:
+      summary: 喂养师拒单
+      operationId: rejectOrder
+      tags: [Order]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/orders/{id}/check-in:
+    post:
+      summary: 喂养师到达打卡
+      operationId: checkIn
+      tags: [Order]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckInDTO'
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/orders/{id}/check-out:
+    post:
+      summary: 喂养师服务完成打卡
+      operationId: checkOut
+      tags: [Order]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckOutDTO'
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/orders/{id}/confirm:
+    post:
+      summary: 主人确认服务完成
+      operationId: confirmOrder
+      tags: [Order]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/orders/{id}/cancel:
+    post:
+      summary: 取消订单
+      operationId: cancelOrder
+      tags: [Order]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/orders/{id}/logs:
+    get:
+      summary: 获取服务过程记录
+      operationId: getServiceLogs
+      tags: [ServiceLog]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListServiceLogVO'
+    post:
+      summary: 喂养师上传服务记录
+      operationId: addServiceLog
+      tags: [ServiceLog]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceLogCreateDTO'
+      responses:
+        '200':
+          description: 成功
+
+components:
+  schemas:
+    OrderCreateDTO:
+      type: object
+      required: [serviceTypeId, petIds, scheduledDate, scheduledStartTime, scheduledEndTime]
+      properties:
+        serviceTypeId: { type: integer, format: int64 }
+        petIds:
+          type: array
+          items: { type: integer, format: int64 }
+        scheduledDate: { type: string, format: date }
+        scheduledStartTime: { type: string, description: 'HH:mm 格式' }
+        scheduledEndTime: { type: string, description: 'HH:mm 格式' }
+        serviceAddress: { type: string, description: '不传则用默认地址' }
+        remark: { type: string }
+        preferredSitterId: { type: integer, format: int64, description: '指定喂养师（可选）' }
+
+    CheckInDTO:
+      type: object
+      required: [latitude, longitude, photoUrl]
+      properties:
+        latitude: { type: number }
+        longitude: { type: number }
+        photoUrl: { type: string, description: '到达打卡照片' }
+
+    CheckOutDTO:
+      type: object
+      required: [latitude, longitude, photoUrl, serviceReport]
+      properties:
+        latitude: { type: number }
+        longitude: { type: number }
+        photoUrl: { type: string, description: '离开打卡照片' }
+        serviceReport: { type: string, description: '服务总结' }
+
+    ServiceLogCreateDTO:
+      type: object
+      required: [logType]
+      properties:
+        logType: { type: string, enum: [FEEDING, PLAYING, CLEANING, WALKING, MEDICATION, ABNORMAL, OTHER] }
+        description: { type: string }
+        photoUrls:
+          type: array
+          items: { type: string }
+        videoUrl: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        petStatus: { type: string, description: '宠物状态描述' }
+
+    OrderVO:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        orderNo: { type: string }
+        serviceTypeName: { type: string }
+        scheduledDate: { type: string, format: date }
+        scheduledStartTime: { type: string }
+        scheduledEndTime: { type: string }
+        totalAmount: { type: number }
+        status: { type: string }
+        sitterName: { type: string }
+        sitterAvatarUrl: { type: string }
+        petCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    OrderDetailVO:
+      allOf:
+        - $ref: '#/components/schemas/OrderVO'
+        - type: object
+          properties:
+            serviceAddress: { type: string }
+            pets:
+              type: array
+              items: { $ref: '#/components/schemas/OrderPetVO' }
+            sitterPhone: { type: string }
+            remark: { type: string }
+            actualStartTime: { type: string, format: date-time }
+            actualEndTime: { type: string, format: date-time }
+
+    OrderPetVO:
+      type: object
+      properties:
+        petId: { type: integer, format: int64 }
+        petName: { type: string }
+        species: { type: string }
+        avatarUrl: { type: string }
+        specialNotes: { type: string }
+
+    ServiceLogVO:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        logType: { type: string }
+        description: { type: string }
+        photoUrls:
+          type: array
+          items: { type: string }
+        videoUrl: { type: string }
+        petStatus: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    PageResultOrderVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            list:
+              type: array
+              items: { $ref: '#/components/schemas/OrderVO' }
+            total: { type: integer }
+
+    ResultOrderVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/OrderVO' }
+
+    ResultOrderDetailVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/OrderDetailVO' }
+
+    ResultListServiceLogVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ServiceLogVO' }

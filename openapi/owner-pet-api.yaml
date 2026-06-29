@@ -1,0 +1,228 @@
+openapi: 3.0.3
+info:
+  title: Petty - Owner & Pet API
+  version: 1.0.0
+  description: 宠物主人与宠物档案管理接口
+
+paths:
+  /api/v1/owners/profile:
+    get:
+      summary: 获取当前用户资料
+      operationId: getOwnerProfile
+      tags: [Owner]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOwnerVO'
+    put:
+      summary: 更新用户资料
+      operationId: updateOwnerProfile
+      tags: [Owner]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerUpdateDTO'
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/owners/address:
+    put:
+      summary: 更新服务地址（含经纬度）
+      operationId: updateOwnerAddress
+      tags: [Owner]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUpdateDTO'
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/pets:
+    get:
+      summary: 获取我的宠物列表
+      operationId: listPets
+      tags: [Pet]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListPetVO'
+    post:
+      summary: 添加宠物
+      operationId: createPet
+      tags: [Pet]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetCreateDTO'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPetVO'
+
+  /api/v1/pets/{id}:
+    get:
+      summary: 获取宠物详情
+      operationId: getPet
+      tags: [Pet]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPetVO'
+    put:
+      summary: 更新宠物信息
+      operationId: updatePet
+      tags: [Pet]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetUpdateDTO'
+      responses:
+        '200':
+          description: 成功
+    delete:
+      summary: 删除宠物
+      operationId: deletePet
+      tags: [Pet]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+
+components:
+  schemas:
+    OwnerVO:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        nickname: { type: string }
+        phone: { type: string }
+        avatarUrl: { type: string }
+        address: { type: string }
+        addressDetail: { type: string }
+        memberLevel: { type: string, enum: [NORMAL, VIP, SVIP] }
+        totalOrders: { type: integer }
+        totalSpent: { type: number }
+
+    OwnerUpdateDTO:
+      type: object
+      properties:
+        nickname: { type: string }
+        avatarUrl: { type: string }
+        emergencyContact: { type: string }
+        emergencyPhone: { type: string }
+
+    AddressUpdateDTO:
+      type: object
+      required: [address, latitude, longitude]
+      properties:
+        address: { type: string }
+        addressDetail: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        lockInfo: { type: string, description: '门锁密码（加密传输）' }
+
+    PetVO:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        species: { type: string, enum: [CAT, DOG, BIRD, FISH, REPTILE, SMALL_ANIMAL, OTHER] }
+        breed: { type: string }
+        gender: { type: string }
+        birthDate: { type: string, format: date }
+        weight: { type: number }
+        avatarUrl: { type: string }
+        personality: { type: string }
+        dietInfo: { type: string }
+        healthNotes: { type: string }
+        vaccineInfo: { type: string }
+        specialInstructions: { type: string }
+
+    PetCreateDTO:
+      type: object
+      required: [name, species]
+      properties:
+        name: { type: string }
+        species: { type: string, enum: [CAT, DOG, BIRD, FISH, REPTILE, SMALL_ANIMAL, OTHER] }
+        breed: { type: string }
+        gender: { type: string, enum: [MALE, FEMALE, NEUTERED_MALE, SPAYED_FEMALE, UNKNOWN] }
+        birthDate: { type: string, format: date }
+        weight: { type: number }
+        avatarUrl: { type: string }
+        personality: { type: string }
+        dietInfo: { type: string }
+        healthNotes: { type: string }
+        vaccineInfo: { type: string }
+        specialInstructions: { type: string }
+
+    PetUpdateDTO:
+      type: object
+      properties:
+        name: { type: string }
+        breed: { type: string }
+        weight: { type: number }
+        avatarUrl: { type: string }
+        personality: { type: string }
+        dietInfo: { type: string }
+        healthNotes: { type: string }
+        vaccineInfo: { type: string }
+        specialInstructions: { type: string }
+
+    ResultOwnerVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/OwnerVO' }
+
+    ResultPetVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PetVO' }
+
+    ResultListPetVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/PetVO' }

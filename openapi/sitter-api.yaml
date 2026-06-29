@@ -1,0 +1,305 @@
+openapi: 3.0.3
+info:
+  title: Petty - Sitter API
+  version: 1.0.0
+  description: 喂养师管理接口（资料、排班、匹配搜索）
+
+paths:
+  /api/v1/sitters/search:
+    get:
+      summary: 搜索附近喂养师（主人端）
+      operationId: searchSitters
+      tags: [Sitter]
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema: { type: number }
+        - name: longitude
+          in: query
+          required: true
+          schema: { type: number }
+        - name: radiusKm
+          in: query
+          schema: { type: number, default: 5 }
+        - name: serviceTypeCode
+          in: query
+          schema: { type: string, description: '服务类型编码' }
+        - name: species
+          in: query
+          schema: { type: string, enum: [CAT, DOG, BIRD, FISH, REPTILE, SMALL_ANIMAL] }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+        - name: sortBy
+          in: query
+          schema: { type: string, enum: [distance, rating, price], default: distance }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListSitterCardVO'
+
+  /api/v1/sitters/{id}:
+    get:
+      summary: 喂养师详情页
+      operationId: getSitterDetail
+      tags: [Sitter]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultSitterDetailVO'
+
+  /api/v1/sitters/profile:
+    get:
+      summary: 获取自己的喂养师资料
+      operationId: getSitterProfile
+      tags: [Sitter]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultSitterDetailVO'
+    put:
+      summary: 更新喂养师资料
+      operationId: updateSitterProfile
+      tags: [Sitter]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SitterUpdateDTO'
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/sitters/register:
+    post:
+      summary: 喂养师注册申请
+      operationId: registerSitter
+      tags: [Sitter]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SitterRegisterDTO'
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/sitters/schedule:
+    get:
+      summary: 获取排班表
+      operationId: getSchedule
+      tags: [Schedule]
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListScheduleVO'
+    post:
+      summary: 设置可用时段
+      operationId: setSchedule
+      tags: [Schedule]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleSetDTO'
+      responses:
+        '200':
+          description: 成功
+
+  /api/v1/sitters/earnings:
+    get:
+      summary: 收入统计
+      operationId: getEarnings
+      tags: [Sitter]
+      parameters:
+        - name: month
+          in: query
+          description: 'YYYY-MM 格式'
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultEarningsVO'
+
+components:
+  schemas:
+    SitterRegisterDTO:
+      type: object
+      required: [name, phone, idCard, serviceArea]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        idCard: { type: string }
+        gender: { type: integer }
+        bio: { type: string }
+        experienceYears: { type: integer }
+        serviceArea: { type: string }
+        serviceRadiusKm: { type: number }
+        homeLatitude: { type: number }
+        homeLongitude: { type: number }
+        acceptedSpecies:
+          type: array
+          items: { type: string }
+        basePrice: { type: number }
+        certificationUrls:
+          type: array
+          items: { type: string }
+
+    SitterUpdateDTO:
+      type: object
+      properties:
+        bio: { type: string }
+        avatarUrl: { type: string }
+        serviceArea: { type: string }
+        serviceRadiusKm: { type: number }
+        acceptedSpecies:
+          type: array
+          items: { type: string }
+        basePrice: { type: number }
+        maxDailyOrders: { type: integer }
+
+    ScheduleSetDTO:
+      type: object
+      required: [dates, timeSlotStart, timeSlotEnd]
+      properties:
+        dates:
+          type: array
+          items: { type: string, format: date }
+          description: '批量设置多天'
+        timeSlotStart: { type: string, description: 'HH:mm' }
+        timeSlotEnd: { type: string, description: 'HH:mm' }
+        maxOrders: { type: integer, default: 3 }
+
+    SitterCardVO:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        avatarUrl: { type: string }
+        bio: { type: string }
+        rating: { type: number }
+        totalOrders: { type: integer }
+        completionRate: { type: number }
+        distance: { type: number, description: '距离(km)' }
+        basePrice: { type: number }
+        acceptedSpecies:
+          type: array
+          items: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+
+    SitterDetailVO:
+      allOf:
+        - $ref: '#/components/schemas/SitterCardVO'
+        - type: object
+          properties:
+            phone: { type: string }
+            experienceYears: { type: integer }
+            serviceArea: { type: string }
+            certifications:
+              type: array
+              items:
+                type: object
+                properties:
+                  name: { type: string }
+                  imageUrl: { type: string }
+            backgroundCheckStatus: { type: string }
+            insuranceStatus: { type: string }
+            recentReviews:
+              type: array
+              items: { $ref: '#/components/schemas/ReviewSummaryVO' }
+
+    ScheduleVO:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        date: { type: string, format: date }
+        timeSlotStart: { type: string }
+        timeSlotEnd: { type: string }
+        maxOrders: { type: integer }
+        bookedOrders: { type: integer }
+        status: { type: string }
+
+    EarningsVO:
+      type: object
+      properties:
+        month: { type: string }
+        totalIncome: { type: number }
+        totalOrders: { type: integer }
+        commission: { type: number }
+        netIncome: { type: number }
+        pendingWithdrawal: { type: number }
+
+    ReviewSummaryVO:
+      type: object
+      properties:
+        rating: { type: number }
+        content: { type: string }
+        ownerNickname: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    ResultListSitterCardVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/SitterCardVO' }
+
+    ResultSitterDetailVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/SitterDetailVO' }
+
+    ResultListScheduleVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ScheduleVO' }
+
+    ResultEarningsVO:
+      type: object
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/EarningsVO' }
