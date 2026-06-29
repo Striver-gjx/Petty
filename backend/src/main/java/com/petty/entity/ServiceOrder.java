@@ -37,6 +37,8 @@ public class ServiceOrder {
     private String cancelBy;
     private String remark;
     private String lockPassword;
+    @Version
+    private Integer version;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
     @TableField(fill = FieldFill.INSERT_UPDATE)

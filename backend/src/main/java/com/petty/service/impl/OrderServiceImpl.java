@@ -37,6 +37,7 @@ public class OrderServiceImpl implements OrderService {
     private final SitterMapper sitterMapper;
     private final ServiceTypeMapper serviceTypeMapper;
     private final ServiceLogMapper serviceLogMapper;
+    private final OrderPetMapper orderPetMapper;
     private final MatchingEngine matchingEngine;
     private final PaymentService paymentService;
 
@@ -108,6 +109,14 @@ public class OrderServiceImpl implements OrderService {
         }
 
         orderMapper.insert(order);
+
+        for (Pet pet : pets) {
+            OrderPet op = new OrderPet();
+            op.setOrderId(order.getId());
+            op.setPetId(pet.getId());
+            orderPetMapper.insert(op);
+        }
+
         log.info("订单创建成功: {}, 状态: {}", order.getOrderNo(), order.getStatus());
         return toVO(order);
     }
@@ -132,7 +141,22 @@ public class OrderServiceImpl implements OrderService {
                         .eq(ServiceLog::getOrderId, orderId)
                         .orderByAsc(ServiceLog::getCreatedAt));
         vo.setServiceLogs(logs.stream().map(this::toLogVO).collect(Collectors.toList()));
-        vo.setPets(Collections.emptyList());
+
+        List<OrderPet> orderPets = orderPetMapper.selectList(
+                new LambdaQueryWrapper<OrderPet>().eq(OrderPet::getOrderId, orderId));
+        List<OrderPetVO> petVOs = orderPets.stream().map(op -> {
+            OrderPetVO pvo = new OrderPetVO();
+            pvo.setPetId(op.getPetId());
+            pvo.setSpecialNotes(op.getSpecialNotes());
+            Pet pet = petMapper.selectById(op.getPetId());
+            if (pet != null) {
+                pvo.setPetName(pet.getName());
+                pvo.setSpecies(pet.getSpecies());
+                pvo.setAvatarUrl(pet.getAvatarUrl());
+            }
+            return pvo;
+        }).collect(Collectors.toList());
+        vo.setPets(petVOs);
         return vo;
     }
 
@@ -156,7 +180,8 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setStatus(OrderStatus.ACCEPTED.name());
         order.setUpdatedAt(LocalDateTime.now());
-        orderMapper.updateById(order);
+        int rows = orderMapper.updateById(order);
+        if (rows == 0) throw new BusinessException("操作冲突，请刷新后重试");
         log.info("喂养师 {} 接单: {}", sitterId, order.getOrderNo());
     }
 
@@ -342,7 +367,7 @@ public class OrderServiceImpl implements OrderService {
             if (!ranked.isEmpty()) {
                 order.setSitterId(ranked.get(0).sitter().getId());
                 order.setStatus(OrderStatus.PENDING_ACCEPT.name());
-                log.info("自动匹配喂养师: {}, 分数: {:.2f}", ranked.get(0).sitter().getName(), ranked.get(0).score());
+                log.info("自动匹配喂养师: {}, 分数: {}", ranked.get(0).sitter().getName(), String.format("%.2f", ranked.get(0).score()));
             }
         }
     }

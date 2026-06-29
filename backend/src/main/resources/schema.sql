@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS service_order (
     cancel_by VARCHAR(20),
     remark VARCHAR(500),
     lock_password VARCHAR(100),
+    version INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
