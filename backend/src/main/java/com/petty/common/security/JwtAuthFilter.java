@@ -3,8 +3,8 @@ package com.petty.common.security;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -14,18 +14,23 @@ import java.util.Set;
 @Slf4j
 @Component
 @Order(1)
-@RequiredArgsConstructor
 public class JwtAuthFilter implements Filter {
 
     private final JwtUtil jwtUtil;
+    private final boolean devBypassEnabled;
 
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/api/v1/service-types",
-            "/h2-console",
             "/actuator"
     );
+
+    public JwtAuthFilter(JwtUtil jwtUtil,
+                         @Value("${petty.security.dev-bypass:false}") boolean devBypassEnabled) {
+        this.jwtUtil = jwtUtil;
+        this.devBypassEnabled = devBypassEnabled;
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -56,8 +61,8 @@ public class JwtAuthFilter implements Filter {
             }
         }
 
-        // 开发模式：无 token 时使用默认用户（生产环境应删除此段）
-        if (isDev()) {
+        if (devBypassEnabled) {
+            log.warn("Dev bypass active: treating unauthenticated request as OWNER(id=1) — path={}", path);
             UserContext.set(new UserContext.UserInfo(1L, "OWNER"));
             try {
                 chain.doFilter(request, response);
@@ -74,10 +79,5 @@ public class JwtAuthFilter implements Filter {
 
     private boolean isPublicPath(String path) {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
-    }
-
-    private boolean isDev() {
-        String env = System.getProperty("spring.profiles.active");
-        return env == null || !env.contains("prod");
     }
 }

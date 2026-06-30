@@ -10,6 +10,8 @@ import java.time.LocalTime;
 public class OrderVO {
     private Long id;
     private String orderNo;
+    private Long ownerId;
+    private Long sitterId;
     private String serviceTypeName;
     private LocalDate scheduledDate;
     private LocalTime scheduledStartTime;

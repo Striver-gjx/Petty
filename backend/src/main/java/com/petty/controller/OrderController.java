@@ -43,7 +43,13 @@ public class OrderController {
 
     @GetMapping("/{id}")
     public Result<OrderDetailVO> get(@PathVariable Long id) {
-        return Result.success(orderService.getOrderDetail(id));
+        Long userId = UserContext.getUserId();
+        String role = UserContext.getRole();
+        OrderDetailVO detail = orderService.getOrderDetail(id);
+        if (!"ADMIN".equals(role) && !isOrderParticipant(detail, userId, role)) {
+            return Result.error(403, "无权查看该订单");
+        }
+        return Result.success(detail);
     }
 
     @PostMapping
@@ -107,6 +113,12 @@ public class OrderController {
 
     @GetMapping("/{id}/logs")
     public Result<List<ServiceLogVO>> getLogs(@PathVariable Long id) {
+        Long userId = UserContext.getUserId();
+        String role = UserContext.getRole();
+        OrderDetailVO detail = orderService.getOrderDetail(id);
+        if (!"ADMIN".equals(role) && !isOrderParticipant(detail, userId, role)) {
+            return Result.error(403, "无权查看该订单日志");
+        }
         return Result.success(orderService.getServiceLogs(id));
     }
 
@@ -116,5 +128,14 @@ public class OrderController {
         Long sitterId = UserContext.getUserId();
         orderService.addServiceLog(id, sitterId, dto);
         return Result.success();
+    }
+
+    private boolean isOrderParticipant(OrderVO order, Long userId, String role) {
+        if ("OWNER".equals(role)) {
+            return userId.equals(order.getOwnerId());
+        } else if ("SITTER".equals(role)) {
+            return userId.equals(order.getSitterId());
+        }
+        return false;
     }
 }

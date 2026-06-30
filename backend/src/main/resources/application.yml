@@ -32,6 +32,12 @@ logging:
   level:
     com.petty: DEBUG
 
+petty:
+  security:
+    dev-bypass: true
+  admin:
+    phone: "13800000000"
+
 management:
   endpoints:
     web:
@@ -57,6 +63,10 @@ spring:
   h2:
     console:
       enabled: false
+
+petty:
+  security:
+    dev-bypass: false
 
 server:
   port: 8080

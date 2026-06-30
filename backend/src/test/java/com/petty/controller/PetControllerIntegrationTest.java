@@ -50,18 +50,18 @@ class PetControllerIntegrationTest {
 
     @Test
     @Order(1)
-    @DisplayName("GET /pets 列出所有宠物")
-    void listAllPets() throws Exception {
+    @DisplayName("GET /pets 列出当前用户的宠物")
+    void listOwnPets() throws Exception {
         mockMvc.perform(get("/api/v1/pets")
                         .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(3))));
+                .andExpect(jsonPath("$.data", hasSize(2)));
     }
 
     @Test
     @Order(2)
-    @DisplayName("GET /pets?ownerId=1 按主人筛选宠物")
+    @DisplayName("GET /pets?ownerId=1 OWNER角色忽略ownerId参数返回自己的")
     void listByOwner() throws Exception {
         mockMvc.perform(get("/api/v1/pets?ownerId=1")
                         .header("Authorization", "Bearer " + ownerToken))

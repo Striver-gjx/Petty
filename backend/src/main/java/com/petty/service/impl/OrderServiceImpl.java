@@ -508,6 +508,8 @@ public class OrderServiceImpl implements OrderService {
     private void copyToVO(ServiceOrder order, OrderVO vo) {
         vo.setId(order.getId());
         vo.setOrderNo(order.getOrderNo());
+        vo.setOwnerId(order.getOwnerId());
+        vo.setSitterId(order.getSitterId());
         vo.setScheduledDate(order.getScheduledDate());
         vo.setScheduledStartTime(order.getScheduledStartTime());
         vo.setScheduledEndTime(order.getScheduledEndTime());
