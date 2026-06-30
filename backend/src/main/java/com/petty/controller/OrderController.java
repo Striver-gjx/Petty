@@ -1,5 +1,6 @@
 package com.petty.controller;
 
+import com.petty.common.result.PageResult;
 import com.petty.common.result.Result;
 import com.petty.common.security.RequireRole;
 import com.petty.common.security.UserContext;
@@ -34,11 +35,13 @@ public class OrderController {
 
     @GetMapping("/all")
     @RequireRole("ADMIN")
-    public Result<List<OrderVO>> listAll(
+    public Result<PageResult<OrderVO>> listAll(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long ownerId,
-            @RequestParam(required = false) Long sitterId) {
-        return Result.success(orderService.listOrders(status, ownerId, sitterId));
+            @RequestParam(required = false) Long sitterId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return Result.success(orderService.listOrdersPage(status, ownerId, sitterId, page, size));
     }
 
     @GetMapping("/{id}")

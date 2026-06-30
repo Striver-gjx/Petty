@@ -2,6 +2,7 @@ package com.petty.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.petty.common.exception.BusinessException;
+import com.petty.common.result.PageResult;
 import com.petty.dto.*;
 import com.petty.entity.*;
 import com.petty.enums.OrderStatus;
@@ -41,6 +42,7 @@ public class OrderServiceImpl implements OrderService {
     private final SitterScheduleMapper sitterScheduleMapper;
     private final MatchingEngine matchingEngine;
     private final PaymentService paymentService;
+    private final com.petty.common.lock.DistributedLock distributedLock;
 
     private static final BigDecimal GPS_CHECK_IN_THRESHOLD_KM = new BigDecimal("0.2");
     private static final BigDecimal GPS_CHECK_OUT_THRESHOLD_KM = new BigDecimal("0.5");
@@ -174,18 +176,42 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public PageResult<OrderVO> listOrdersPage(String status, Long ownerId, Long sitterId, int page, int size) {
+        LambdaQueryWrapper<ServiceOrder> w = new LambdaQueryWrapper<>();
+        if (status != null && !status.isEmpty()) w.eq(ServiceOrder::getStatus, status);
+        if (ownerId != null) w.eq(ServiceOrder::getOwnerId, ownerId);
+        if (sitterId != null) w.eq(ServiceOrder::getSitterId, sitterId);
+        w.orderByDesc(ServiceOrder::getCreatedAt);
+
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<ServiceOrder> p =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        orderMapper.selectPage(p, w);
+
+        List<OrderVO> voList = p.getRecords().stream().map(this::toVO).collect(Collectors.toList());
+        return PageResult.of(voList, p.getTotal(), page, size);
+    }
+
+    @Override
     @Transactional
     public void acceptOrder(Long orderId, Long sitterId) {
-        ServiceOrder order = getOrderOrThrow(orderId);
-        assertStatus(order, OrderStatus.PENDING_ACCEPT);
-        if (!sitterId.equals(order.getSitterId())) {
-            throw new BusinessException("非指派喂养师，无法接单");
+        String lockKey = "order:accept:" + orderId;
+        if (!distributedLock.tryLock(lockKey, 5000)) {
+            throw new BusinessException("订单正在处理中，请稍后重试");
         }
-        order.setStatus(OrderStatus.ACCEPTED.name());
-        order.setUpdatedAt(LocalDateTime.now());
-        int rows = orderMapper.updateById(order);
-        if (rows == 0) throw new BusinessException("操作冲突，请刷新后重试");
-        log.info("喂养师 {} 接单: {}", sitterId, order.getOrderNo());
+        try {
+            ServiceOrder order = getOrderOrThrow(orderId);
+            assertStatus(order, OrderStatus.PENDING_ACCEPT);
+            if (!sitterId.equals(order.getSitterId())) {
+                throw new BusinessException("非指派喂养师，无法接单");
+            }
+            order.setStatus(OrderStatus.ACCEPTED.name());
+            order.setUpdatedAt(LocalDateTime.now());
+            int rows = orderMapper.updateById(order);
+            if (rows == 0) throw new BusinessException("操作冲突，请刷新后重试");
+            log.info("喂养师 {} 接单: {}", sitterId, order.getOrderNo());
+        } finally {
+            distributedLock.unlock(lockKey);
+        }
     }
 
     @Override

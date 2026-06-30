@@ -7,6 +7,7 @@ import com.petty.mapper.ServiceTypeMapper;
 import com.petty.service.ServiceTypeService;
 import com.petty.vo.ServiceTypeVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -21,6 +22,7 @@ public class ServiceTypeServiceImpl implements ServiceTypeService {
     private final ServiceTypeMapper serviceTypeMapper;
 
     @Override
+    @Cacheable(value = "serviceTypes", key = "'active'")
     public List<ServiceTypeVO> listActive() {
         List<ServiceType> types = serviceTypeMapper.selectList(
                 new LambdaQueryWrapper<ServiceType>()
@@ -30,6 +32,7 @@ public class ServiceTypeServiceImpl implements ServiceTypeService {
     }
 
     @Override
+    @Cacheable(value = "serviceTypes", key = "#id")
     public ServiceTypeVO getById(Long id) {
         ServiceType type = serviceTypeMapper.selectById(id);
         if (type == null) throw new BusinessException(404, "服务类型不存在");

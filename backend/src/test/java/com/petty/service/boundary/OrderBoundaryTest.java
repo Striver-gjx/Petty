@@ -44,6 +44,7 @@ class OrderBoundaryTest {
     @Mock private SitterScheduleMapper sitterScheduleMapper;
     @Mock private MatchingEngine matchingEngine;
     @Mock private PaymentService paymentService;
+    @Mock private com.petty.common.lock.DistributedLock distributedLock;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -52,6 +53,8 @@ class OrderBoundaryTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(distributedLock.tryLock(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
+
         mockOrder = new ServiceOrder();
         mockOrder.setId(1L);
         mockOrder.setOrderNo("ORD123");

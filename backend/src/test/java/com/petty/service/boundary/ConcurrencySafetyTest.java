@@ -46,6 +46,7 @@ class ConcurrencySafetyTest {
         @Mock private SitterScheduleMapper sitterScheduleMapper;
         @Mock private MatchingEngine matchingEngine;
         @Mock private PaymentService paymentService;
+        @Mock private com.petty.common.lock.DistributedLock distributedLock;
 
         @InjectMocks
         private OrderServiceImpl orderService;
@@ -53,6 +54,7 @@ class ConcurrencySafetyTest {
         @Test
         @DisplayName("已接单的订单再次接单 - 状态异常")
         void accept_alreadyAccepted_throws() {
+            org.mockito.Mockito.when(distributedLock.tryLock(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
             ServiceOrder order = new ServiceOrder();
             order.setId(1L);
             order.setSitterId(1L);
@@ -66,6 +68,7 @@ class ConcurrencySafetyTest {
         @Test
         @DisplayName("已在服务中的订单不能再接单")
         void accept_inService_throws() {
+            org.mockito.Mockito.when(distributedLock.tryLock(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
             ServiceOrder order = new ServiceOrder();
             order.setId(1L);
             order.setSitterId(1L);

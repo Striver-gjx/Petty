@@ -7,6 +7,8 @@ import com.petty.entity.Sitter;
 import com.petty.mapper.SitterMapper;
 import com.petty.service.SitterService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,6 +20,7 @@ import java.util.List;
 public class SitterServiceImpl extends ServiceImpl<SitterMapper, Sitter> implements SitterService {
 
     @Override
+    @Cacheable(value = "sitters", key = "'active'")
     public List<Sitter> listActive() {
         return list(new LambdaQueryWrapper<Sitter>()
                 .eq(Sitter::getStatus, "ACTIVE")
@@ -43,6 +46,7 @@ public class SitterServiceImpl extends ServiceImpl<SitterMapper, Sitter> impleme
     }
 
     @Override
+    @CacheEvict(value = "sitters", allEntries = true)
     public void approveOnboard(Long sitterId) {
         Sitter sitter = getById(sitterId);
         if (sitter == null) throw new BusinessException("喂养师不存在");
@@ -57,6 +61,7 @@ public class SitterServiceImpl extends ServiceImpl<SitterMapper, Sitter> impleme
     }
 
     @Override
+    @CacheEvict(value = "sitters", allEntries = true)
     public void rejectOnboard(Long sitterId, String reason) {
         Sitter sitter = getById(sitterId);
         if (sitter == null) throw new BusinessException("喂养师不存在");

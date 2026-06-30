@@ -45,6 +45,7 @@ class OrderServiceTest {
     @Mock private SitterScheduleMapper sitterScheduleMapper;
     @Mock private MatchingEngine matchingEngine;
     @Mock private PaymentService paymentService;
+    @Mock private com.petty.common.lock.DistributedLock distributedLock;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -60,6 +61,8 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(distributedLock.tryLock(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
+
         mockOwner = new Owner();
         mockOwner.setId(1L);
         mockOwner.setNickname("张小花");

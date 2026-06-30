@@ -1,5 +1,6 @@
 package com.petty.service;
 
+import com.petty.common.result.PageResult;
 import com.petty.dto.*;
 import com.petty.entity.ServiceOrder;
 import com.petty.vo.OrderDetailVO;
@@ -15,6 +16,8 @@ public interface OrderService {
     OrderDetailVO getOrderDetail(Long orderId);
 
     List<OrderVO> listOrders(String status, Long ownerId, Long sitterId);
+
+    PageResult<OrderVO> listOrdersPage(String status, Long ownerId, Long sitterId, int page, int size);
 
     void acceptOrder(Long orderId, Long sitterId);
 
