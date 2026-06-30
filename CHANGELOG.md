@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-06-29
+
+### Added
+- GitHub Actions CI: backend `mvn verify` + admin-web typecheck/build + mini-app typecheck
+- Backend Dockerfile: multi-stage build with JDK 21, non-root user, healthcheck
+- Admin-web Dockerfile + nginx reverse proxy for `/api/`
+- docker-compose: backend + admin-web + MySQL + Redis full orchestration
+- Spring Boot Actuator health endpoint (`/actuator/health`)
+- `@RequireRole` annotation + `RoleInterceptor` for ADMIN role isolation
+- Controller integration tests: Auth, Owner, Pet, Sitter, Withdrawal (30 new tests)
+- ADMIN login support in AuthController
+- `.dockerignore` for backend and admin-web
+
+### Fixed
+- `OrderScheduler.handleAutoConfirm()` now calls `orderService.confirmOrder()` for full settlement
+- Admin-web Login page uses ADMIN role instead of OWNER
+- Sensitive field exposure: Sitter/Owner entities now use `@JsonIgnore` on PII fields
+
+### Security
+- `/orders/all` requires ADMIN role
+- Sitter approve/reject/create/update requires ADMIN role
+- Actuator endpoints excluded from JWT filter
+
+## [0.5.0] - 2026-06-29
+
+### Added
+- Admin-web: order detail page with service logs timeline
+- Admin-web: sitter operations (approve/reject/suspend/activate)
+- Admin-web: Owner/Pet/Sitter CRUD forms with modal dialogs
+- Admin-web: search/filter on all list pages + status tabs on orders
+- Admin-web: settings page with commission display and service type CRUD
+- Mini-app: pet add/edit form with species/gender pickers
+- Mini-app: multi-dimensional review page (5 dimensions, tags, anonymous)
+- Mini-app: enhanced order detail with pet list, service logs, action buttons
+
+### Fixed
+- Dashboard `orderApi.list()` → `orderApi.listAll()` bug
+
+## [0.4.0] - 2026-06-29
+
+### Added
+- Order lifecycle: `SITTER_EN_ROUTE` status + `/orders/{id}/en-route` endpoint
+- Scheduled tasks: accept timeout (30min re-match), auto-confirm (24h), auto-review (72h)
+- Service log validation: require at least one log before check-out
+- Member discount + auto-upgrade (NORMAL→VIP→SVIP)
+- Sitter wallet balance + withdrawal balance check
+- Multi-dimensional reviews (5 rating dimensions) with 72h time window
+- Sitter schedule filtering in matching engine
+- Sitter onboarding flow (apply/approve/reject)
+- Mini-app: JWT login page with role selection
+- Mini-app: sitter order management + active work pages
+- Admin-web: JWT authentication with login page
+- P0 complete: payment after order creation, reject triggers re-match
+
 ## [0.3.0] - 2026-06-29
 
 ### Added

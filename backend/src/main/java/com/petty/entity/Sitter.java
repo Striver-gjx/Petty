@@ -1,6 +1,8 @@
 package com.petty.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,6 +16,7 @@ public class Sitter {
     private String name;
     private String phone;
     private String avatarUrl;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String idCard;
     private Integer gender;
     private String bio;
@@ -35,7 +38,9 @@ public class Sitter {
     private LocalDate backgroundCheckDate;
     private String insuranceStatus;
     private String status;
+    @JsonIgnore
     private String openid;
+    @JsonIgnore
     private BigDecimal walletBalance;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

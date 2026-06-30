@@ -58,6 +58,7 @@ public class OrderScheduler {
 
     /**
      * 每30分钟检查: 服务完成超过24小时未确认的订单，自动确认
+     * 必须通过 orderService.confirmOrder() 走完整结算流程
      */
     @Scheduled(fixedDelay = 1_800_000, initialDelay = 120_000)
     public void handleAutoConfirm() {
@@ -69,10 +70,8 @@ public class OrderScheduler {
 
         for (ServiceOrder order : unconfirmed) {
             try {
-                order.setStatus(OrderStatus.OWNER_CONFIRMED.name());
-                order.setUpdatedAt(LocalDateTime.now());
-                orderMapper.updateById(order);
-                log.info("订单 {} 超时自动确认", order.getOrderNo());
+                orderService.confirmOrder(order.getId(), order.getOwnerId());
+                log.info("订单 {} 超时自动确认（含结算）", order.getOrderNo());
             } catch (Exception e) {
                 log.error("自动确认失败: orderId={}", order.getId(), e);
             }
