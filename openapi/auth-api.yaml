@@ -58,8 +58,8 @@ components:
           example: "13800001111"
         role:
           type: string
-          enum: [OWNER, SITTER]
-          description: 登录角色
+          enum: [OWNER, SITTER, ADMIN]
+          description: 登录角色（ADMIN 仅限管理员手机号）
 
     LoginResultResponse:
       type: object
@@ -87,7 +87,7 @@ components:
           type: object
           properties:
             userId: { type: integer, format: int64 }
-            role: { type: string, enum: [OWNER, SITTER] }
+            role: { type: string, enum: [OWNER, SITTER, ADMIN] }
 
     ErrorResponse:
       type: object

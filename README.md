@@ -131,6 +131,42 @@ curl -X POST http://localhost:18080/api/v1/orders/1/check-in \
 
 详见 [AGENTS.md](./AGENTS.md)
 
+## Docker 部署
+
+```bash
+# 一键启动所有服务（后端 + 管理后台 + MySQL + Redis）
+docker-compose up -d
+
+# 后端: http://localhost:8080
+# 管理后台: http://localhost:3000
+# MySQL: localhost:3306 (petty/petty123)
+```
+
+生产部署注意事项：
+- 修改 `PETTY_JWT_SECRET` 为强随机密钥
+- 修改数据库密码
+- CORS 需配置实际域名（修改 `WebConfig.java`）
+- `petty.security.dev-bypass` 必须为 `false`
+
+## 角色与认证
+
+| 角色 | 用途 | 演示账号 |
+|------|------|----------|
+| OWNER | 宠物主人 | 13800001111 |
+| SITTER | 喂养师 | 13900001111 |
+| ADMIN | 管理后台 | 13800000000 |
+
+```bash
+# ADMIN 登录
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:18080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"13800000000","role":"ADMIN"}' | jq -r '.data.token')
+
+# 管理端接口（需要 ADMIN token）
+curl http://localhost:18080/api/v1/orders/all \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
 ## License
 
 MIT
